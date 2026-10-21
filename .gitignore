@@ -1,0 +1,22 @@
+# agent files & personal context (never commit)
+CLAUDE.md
+AGENTS.md
+.claude/
+.agents/
+agent/
+skills-lock.json
+appwrite-databases-hackathon-brief.md
+.vscode/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+node_modules/
+.DS_Store
+
+# build output
+dist/
+coverage/
+!.env.test.example

@@ -1,0 +1,26 @@
+{
+  "name": "backroom",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit && node scripts/build-functions.mjs",
+    "test": "vitest run --project unit",
+    "test:int": "vitest run --project integration",
+    "keys:test": "node scripts/mint-key.mjs --env .env.test --project backroom-test && node scripts/mint-key.mjs --env .env.test --project backroom-test --var APPWRITE_AGENT_KEY --scopes users.write,rows.write,execution.write && node scripts/mint-key.mjs --env .env.test --project backroom-test --var APPWRITE_RESOLVER_KEY --scopes rows.read,rows.write,execution.write"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^1.0.0",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "esbuild": "^0.28.2",
+    "node-appwrite": "^31.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

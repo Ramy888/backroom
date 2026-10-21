@@ -1,0 +1,150 @@
+{
+ "recordedAt": "2026-10-21T21:22:06.965Z",
+ "winner": "wolves",
+ "phases": 3,
+ "seats": [
+  {
+   "seat": 1,
+   "name": "Uncle Hassan",
+   "role": "villager"
+  },
+  {
+   "seat": 3,
+   "name": "Dr. Mona",
+   "role": "villager"
+  },
+  {
+   "seat": 2,
+   "name": "The Bluffer",
+   "role": "seer"
+  },
+  {
+   "seat": 4,
+   "name": "Karim",
+   "role": "villager"
+  },
+  {
+   "seat": 6,
+   "name": "Wolf (visitor)",
+   "role": "wolf"
+  },
+  {
+   "seat": 5,
+   "name": "Om Fatma",
+   "role": "wolf"
+  }
+ ],
+ "events": [
+  {
+   "t": 0,
+   "phase": 1,
+   "kind": "close",
+   "eliminated": 1,
+   "eliminatedRole": "villager"
+  },
+  {
+   "t": 4629,
+   "phase": 2,
+   "seat": 2,
+   "who": "The Bluffer",
+   "kind": "speech",
+   "text": "I am the Seer. Last night I checked seat 1 and they are NOT a wolf, so seat 1 is village. Let's look closely at the others.",
+   "target": null
+  },
+  {
+   "t": 7692,
+   "phase": 2,
+   "seat": 3,
+   "who": "Dr. Mona",
+   "kind": "speech",
+   "text": "I'm a villager, seat 3. Seat 2 claims Seer and checked seat 1 as village; I'll weigh that claim carefully and watch who speaks and votes suspiciously.",
+   "target": null
+  },
+  {
+   "t": 11000,
+   "phase": 2,
+   "seat": 4,
+   "who": "Karim",
+   "kind": "speech",
+   "text": "Seat 4 here, villager. I'm not sure yet who to trust between seats 2 and 3; I'll watch voting patterns closely before committing to a vote.",
+   "target": null
+  },
+  {
+   "t": 15865,
+   "phase": 2,
+   "seat": 5,
+   "who": "Om Fatma",
+   "kind": "speech",
+   "text": "Seat 5 here. Seat 2's Seer claim fits what we've heard so far, so I'm inclined to trust it for now. Let's hear more from seats 1, 3 and 4 before we commit to a vote.",
+   "target": null
+  },
+  {
+   "t": 20130,
+   "phase": 2,
+   "seat": 6,
+   "who": "Wolf (visitor)",
+   "kind": "speech",
+   "text": "Seat 6 here, villager. Seat 2's claim is plausible, so I'd like to hear seat 1 speak before we decide. Let's not rush a vote.",
+   "target": null
+  },
+  {
+   "t": 24073,
+   "phase": 2,
+   "kind": "close",
+   "eliminated": null,
+   "eliminatedRole": null
+  },
+  {
+   "t": 28208,
+   "phase": 3,
+   "seat": 3,
+   "who": "Dr. Mona",
+   "kind": "vote",
+   "text": "Seat 3 voting. Seat 4 is hedging between the Seer claim and me without committing, which looks evasive, so I'm voting seat 4.",
+   "target": 4
+  },
+  {
+   "t": 28440,
+   "phase": 3,
+   "seat": 5,
+   "who": "Om Fatma",
+   "kind": "vote",
+   "text": "Seat 2's Seer claim is a single unverified claim, and seat 1 has not spoken to confirm it. I'm voting to eliminate seat 2 for now.",
+   "target": 2
+  },
+  {
+   "t": 29909,
+   "phase": 3,
+   "seat": 2,
+   "who": "The Bluffer",
+   "kind": "vote",
+   "text": "Seat 2 (Seer): My check on seat 1 was village, and seat 1 is already out. I'm voting seat 6, who has been quiet and is my strongest wolf read.",
+   "target": 6
+  },
+  {
+   "t": 30682,
+   "phase": 3,
+   "seat": 4,
+   "who": "Karim",
+   "kind": "abstain",
+   "text": "",
+   "target": null
+  },
+  {
+   "t": 30781,
+   "phase": 3,
+   "seat": 6,
+   "who": "Wolf (visitor)",
+   "kind": "vote",
+   "text": "Seat 2's Seer claim is the only hard info we have, and it points at seat 1 as village. I'm voting seat 2 so we can test the claim.",
+   "target": 2
+  },
+  {
+   "t": 31876,
+   "phase": 3,
+   "kind": "close",
+   "eliminated": 2,
+   "eliminatedRole": "seer"
+  }
+ ]
+}
