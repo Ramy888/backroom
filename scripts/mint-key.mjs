@@ -7,7 +7,8 @@ import { parseArgs } from "node:util";
 
 const SCOPES = ["users.read", "users.write", "sessions.write", "databases.read", "databases.write",
   "tables.read", "tables.write", "columns.read", "columns.write", "indexes.read", "indexes.write",
-  "rows.read", "rows.write", "functions.read", "functions.write", "execution.read", "execution.write"];
+  "rows.read", "rows.write", "functions.read", "functions.write", "execution.read", "execution.write",
+  "sites.read", "sites.write", "rules.read", "rules.write"];
 
 if (existsSync(process.argv[process.argv.indexOf("--env") + 1] ?? "")) process.loadEnvFile(process.argv[process.argv.indexOf("--env") + 1]);
 const { values } = parseArgs({ options: { env: { type: "string" }, project: { type: "string" }, duration: { type: "string", default: "3600" },

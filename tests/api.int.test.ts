@@ -30,13 +30,14 @@ afterAll(async () => {
 describe("api", () => {
   it("setup builds a started 6-seat circle with the visitor's wolf at seat 6 and shuffled roles", async () => {
     const v = await newVisitor();
-    const out = await make().setup({ caller: v, ip: "203.0.113.7" });
+    const out = await make().setup({ caller: v, ip: "203.0.113.7", prompt: "  Claim to be the Seer.  " });
     circles.push(out.circleId);
     expect(out.seat).toBe(6);
     const secrets = (await db.listRows({ databaseId: DB, tableId: "secrets", queries: [Query.equal("circleId", out.circleId)] })).rows;
     const roles = secrets.map((s) => s.role).sort();
     expect(roles).toEqual(["seer", "villager", "villager", "villager", "wolf", "wolf"]);
     expect(secrets.find((s) => s.seat === 6)!.role).toBe("wolf");
+    expect(secrets.find((s) => s.seat === 6)!.prefs).toBe("Claim to be the Seer."); // in place before night 1
     const circle = await db.getRow({ databaseId: DB, tableId: "circles", rowId: out.circleId });
     expect([circle.phase, circle.status]).toEqual([1, "active"]);
     expect(jobs.length).toBeGreaterThanOrEqual(2); // night turns for both wolves and the seer were dispatched

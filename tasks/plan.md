@@ -80,9 +80,9 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 - [ ] The schema is frozen
 
 ### Phase 2: Hero web slice (the live URL)
-- [ ] 11. Web shell and deploy pipeline (Vite, DESIGN tokens, i18n/RTL, anonymous session, Sites + Functions deploy, smoke test)
-- [ ] 12. Circle board (phase strip, seats, transcript via filtered Realtime, templates X2, prompt input)
-- [ ] 13. Denial moment (the direct JWT read button M3, stamp, why chip X1, scoreboard, live region)
+- [~] 11. (✅ `npm run deploy -- --env .env.test` = schema → Functions → Site → SMOKE PASS on https://backroom-test.appwrite.network; prod run pending OK) Web shell and deploy pipeline (Vite, DESIGN tokens, i18n/RTL, anonymous session, Sites + Functions deploy, smoke test)
+- [~] 12. (local ✅ on backroom-test: Realtime updates, templates, RTL; live-URL walk pending) Circle board (phase strip, seats, transcript via filtered Realtime, templates X2, prompt input)
+- [~] 13. (local ✅ real 404s via REST with only the wolf JWT, stamps pile, reduced motion; live-URL check pending) Denial moment (the direct JWT read button M3, stamp, why chip X1, scoreboard, live region)
 - [ ] 14. Reveal and receipt (reveal grant, `receipts` snapshot M11 with deploy ID M5, `/r/<id>`, share X3)
 - [ ] 15. Caps UI, kill switch, operator page, judge code, always-on demo circle
 

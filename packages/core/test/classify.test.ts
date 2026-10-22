@@ -19,8 +19,12 @@ describe("forbidden-read classifier (V6)", () => {
     expect(classifyCall({ table: "moves" }, own)).toBe("allowed");
     expect(classifyCall({ table: "seats", rowId: "x" }, own)).toBe("allowed");
   });
-  it("counts rows returned that the seat was not granted", () => {
-    expect(foreignRows([{ $id: "c1-s1-secret" }, { $id: "c1-s3-secret" }], own)).toBe(1);
-    expect(foreignRows([], own)).toBe(0);
+  it("counts returned rows whose own permissions never granted this seat's user", () => {
+    const row = (...perms: string[]) => ({ $permissions: perms });
+    // A partner wolf's den row is shared by permission, so it is not foreign; a row granted only to seat 3 is.
+    expect(foreignRows([row('read("user:c1-a1")', 'read("user:c1-a6")'), row('read("user:c1-a3")')], "c1-a1")).toBe(1);
+    expect(foreignRows([row('read("any")'), row('read("users")')], "c1-a1")).toBe(0);
+    expect(foreignRows([row('read("user:c1-a10")')], "c1-a1")).toBe(1); // prefix match is not a grant
+    expect(foreignRows([], "c1-a1")).toBe(0);
   });
 });

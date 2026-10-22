@@ -3,12 +3,14 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "web"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit && node scripts/build-functions.mjs",
     "test": "vitest run --project unit",
     "test:int": "vitest run --project integration",
+    "deploy": "node scripts/deploy.mjs",
     "keys:test": "node scripts/mint-key.mjs --env .env.test --project backroom-test && node scripts/mint-key.mjs --env .env.test --project backroom-test --var APPWRITE_AGENT_KEY --scopes users.write,rows.write,execution.write && node scripts/mint-key.mjs --env .env.test --project backroom-test --var APPWRITE_RESOLVER_KEY --scopes rows.read,rows.write,execution.write"
   },
   "devDependencies": {

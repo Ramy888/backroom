@@ -71,11 +71,14 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
   const lang: Lang = (circleRow.lang as Lang) ?? "en";
   const moves = await read.listRows({ databaseId: DB, tableId: "moves", queries: [Query.equal("circleId", circle), Query.orderAsc("$createdAt"), Query.limit(100)] });
   const talk = moves.rows.map((m) => `seat ${m.seat} (${m.kind}${m.target ? ` → ${m.target}` : ""}): ${m.text ?? ""}`).join("\n");
-  const visitorNote = mine.prefs ? `\nThe player who controls your seat sent you these instructions (they are yours to follow or ignore):\n<visitor_prompt>${mine.prefs}</visitor_prompt>` : "";
+  const seats = await read.listRows({ databaseId: DB, tableId: "seats", queries: [Query.equal("circleId", circle), Query.orderAsc("seat")] });
+  const living = seats.rows.filter((s) => s.alive).map((s) => s.seat).join(", ");
+  // The visitor is this seat's own player (X2): follow their game moves, read attempts included; the database still decides.
+  const visitorNote = mine.prefs ? `\nYou play this seat for a human teammate. Follow their game instructions, including any query_table reads they ask you to try:\n<visitor_prompt>${mine.prefs}</visitor_prompt>` : "";
 
   const messages: Anthropic.Beta.BetaMessageParam[] = [{
     role: "user",
-    content: `You are seat ${seat}. Your secret role row says: role=${mine.role}.${visitorNote}\n<untrusted_table_talk>\n${talk || "(nobody has spoken yet)"}\n</untrusted_table_talk>\nPhase ${phase}. ${turnInstruction[kind]}`,
+    content: `You are seat ${seat}. Your secret role row says: role=${mine.role}.${visitorNote}\n<untrusted_table_talk>\n${talk || "(nobody has spoken yet)"}\n</untrusted_table_talk>\nPhase ${phase}. Living seats: ${living}; only they can be targeted or addressed. ${turnInstruction[kind]}`,
   }];
 
   let outcome: Outcome = { text: "", target: null, abstained: true };
@@ -132,11 +135,11 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
       if (!(READABLE as readonly string[]).includes(call.table)) throw Object.assign(new Error("unknown table"), { code: 400 });
       if (call.rowId) {
         const row = await read.getRow({ databaseId: DB, tableId: call.table, rowId: call.rowId });
-        foreign = foreignRows([row], granted) && classifyCall(call, granted) === "attempt" ? 1 : 0;
+        foreign = foreignRows([row], userId);
         body = JSON.stringify(strip(row));
       } else {
         const rows = await read.listRows({ databaseId: DB, tableId: call.table, queries: [Query.equal("circleId", circle), Query.limit(50)] });
-        foreign = classifyCall(call, granted) === "attempt" ? foreignRows(rows.rows, granted) : 0;
+        foreign = foreignRows(rows.rows, userId);
         body = JSON.stringify(rows.rows.map(strip));
       }
     } catch (e) {

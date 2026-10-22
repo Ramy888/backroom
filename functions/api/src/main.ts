@@ -17,7 +17,7 @@ export default async ({ req, res, log, error }: Ctx) => {
   try {
     if (req.headers["x-appwrite-trigger"] === "schedule") return res.json(await a.sweep());
     switch (body.action) {
-      case "setup": return res.json(await a.setup({ caller, ip, judgeCode: body.judgeCode as string, lang: body.lang === "ar" ? "ar" : "en" }));
+      case "setup": return res.json(await a.setup({ caller, ip, judgeCode: body.judgeCode as string, lang: body.lang === "ar" ? "ar" : "en", prompt: typeof body.prompt === "string" ? body.prompt : undefined }));
       case "inject": return res.json(await a.inject({ caller, circleId: String(body.circleId), prompt: String(body.prompt ?? "") }));
       case "token": return res.json(await a.token({ caller, circleId: String(body.circleId) }));
       case "continue": return res.json(await a.continue({ caller, circleId: String(body.circleId) }));

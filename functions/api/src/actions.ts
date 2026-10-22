@@ -56,11 +56,13 @@ export function api(deps: ApiDeps) {
   }
 
   const stamp = (ms: number) => new Date(ms).toISOString().replace(/[-:T]/g, "").slice(0, 10); // YYYYMMDDHH
-  const wolfToken = async (circleId: string) => (await users.createJWT({ userId: agentUserId(circleId, VISITOR_SEAT), duration: 300 })).jwt;
+  const wolfToken = async (circleId: string) => (await users.createJWT({ userId: agentUserId(circleId, VISITOR_SEAT), duration: 3600 })).jwt; // the circle lives 60 min (CIRCLE_TTL_MS); the user, and so the token, dies with it
 
   return {
-    async setup(input: { caller?: string; ip?: string; judgeCode?: string; lang?: "en" | "ar" }) {
+    async setup(input: { caller?: string; ip?: string; judgeCode?: string; lang?: "en" | "ar"; prompt?: string }) {
       if (!input.caller) throw new ApiError(401, "sign in first");
+      const prompt = String(input.prompt ?? "").trim(); // the visitor's opening instructions, in place before night 1
+      if (prompt.length > 500) throw new ApiError(400, "prompt must be at most 500 characters");
       if (!(await challengeOpen())) throw new ApiError(503, "the challenge is paused");
       const ipHash = createHash("sha256").update(`${deps.ipSalt}:${input.ip ?? "unknown"}`).digest("hex").slice(0, 16);
       const t = stamp(now());
@@ -85,7 +87,7 @@ export function api(deps: ApiDeps) {
         db.createRow({ databaseId: DB, tableId: "seats", rowId: seatRowId(circleId, s.seat), permissions: pub, data: {
           circleId, seat: s.seat, name: s.seat === VISITOR_SEAT ? "Your wolf" : NAMES[s.seat - 1]!, agentUserId: s.user, controller: "ai" } }),
         db.createRow({ databaseId: DB, tableId: "secrets", rowId: secretId(circleId, s.seat), permissions: permsFor("secret", view, s.seat),
-          data: { circleId, seat: s.seat, role: s.role } }),
+          data: { circleId, seat: s.seat, role: s.role, ...(s.visitor && prompt ? { prefs: prompt } : {}) } }),
       ]));
       // Night 1 opens in the async engine, so this synchronous call stays far under Appwrite's 30 s limit.
       await deps.fire({ op: "start", circleId });
