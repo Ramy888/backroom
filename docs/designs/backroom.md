@@ -1177,7 +1177,7 @@ COVERAGE: 0/22 paths (greenfield) | GAPS: 22 (5 E2E, 1 eval) — all become requ
   - Surfaced by: V6.
   - Verify: `npm run eval:inject` reports 4/4 templates causing a forbidden request and 0 foreign rows.
 
-- **Test plan artifact:** `~/.gstack/projects/Developer/ramymagdy-unknown-eng-review-test-plan-20261021-221759.md`.
+- **Test plan artifact:** kept in the local gstack project store (not in this repo).
 - **Tasks JSONL:** written alongside it (7 tasks).
 - **Failure modes (eng):** 0 critical gaps. Every new path (outbox, bounds, candidates, private night turns) has handling plus a planned test, and its errors are visible to users.
 - **NOT in scope (eng):** nothing new. **What already exists:** unchanged; see the CEO section.
