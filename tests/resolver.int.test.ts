@@ -51,7 +51,7 @@ describe("engine op=resolve", () => {
     await h.r.start(fx.circle);
     await h.drain();
     const circle = await db.getRow({ databaseId: DB, tableId: "circles", rowId: fx.circle });
-    expect([circle.status, circle.winner, circle.phase]).toEqual(["ended", "village", 6]);
+    expect([circle.status, circle.winner, circle.phase]).toEqual(["revealed", "village", 6]) // a finished game is revealed to its visitor (T14);
     expect(circle.executions).toBeLessThanOrEqual(60);
     const closes = (await db.listRows({ databaseId: DB, tableId: "phases", queries: [Query.equal("circleId", fx.circle), Query.orderAsc("phase")] })).rows;
     expect(closes.map((c) => [c.phase, c.status, c.eliminated ?? null, c.eliminatedRole ?? null])).toEqual([
@@ -94,7 +94,7 @@ describe("engine op=resolve", () => {
     await h.r.resendPending(fx.circle);
     await h.drain();
     const circle = await db.getRow({ databaseId: DB, tableId: "circles", rowId: fx.circle });
-    expect(circle.status).toBe("ended");
+    expect(circle.status).toBe("revealed");
     const pending = (await db.listRows({ databaseId: DB, tableId: "dispatches", queries: [Query.equal("circleId", fx.circle), Query.equal("status", "pending")] })).rows;
     expect(pending).toHaveLength(0);
   }, 300_000);

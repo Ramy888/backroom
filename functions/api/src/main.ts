@@ -10,6 +10,7 @@ export default async ({ req, res, log, error }: Ctx) => {
   const key = req.headers["x-appwrite-key"]!;
   const fns = new Functions(new Client().setEndpoint(endpoint).setProject(project).setKey(key));
   const a = api({ endpoint, project, key, ipSalt: process.env.IP_SALT!, judgeCode: process.env.JUDGE_CODE,
+    deploy: { deployId: process.env.APPWRITE_FUNCTION_DEPLOYMENT ?? null, commit: process.env.GIT_COMMIT ?? null },
     fire: async (job: Job) => { await fns.createExecution({ functionId: process.env.ENGINE_FUNCTION_ID!, body: JSON.stringify(job), async: true }); } });
   const caller = req.headers["x-appwrite-user-id"] || undefined;
   const ip = req.headers["x-appwrite-client-ip"];
@@ -21,6 +22,7 @@ export default async ({ req, res, log, error }: Ctx) => {
       case "inject": return res.json(await a.inject({ caller, circleId: String(body.circleId), prompt: String(body.prompt ?? "") }));
       case "token": return res.json(await a.token({ caller, circleId: String(body.circleId) }));
       case "continue": return res.json(await a.continue({ caller, circleId: String(body.circleId) }));
+      case "share": return res.json(await a.share({ caller, circleId: String(body.circleId) }));
       default: return res.json({ error: "unknown action" }, 400);
     }
   } catch (e) {

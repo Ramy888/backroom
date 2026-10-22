@@ -41,12 +41,12 @@ export function Play({ t, lang }: { t: Strings; lang: string }) {
 
 // The board for one circle: everything below is read with the visitor's own session (row permissions apply).
 function useCircle(circleId: string) {
-  const [state, setState] = useState<{ circle: Row; seats: Row[]; moves: Row[]; closes: Row[]; turns: Row[]; den: Row[]; logs: Row[] } | null>(null);
+  const [state, setState] = useState<{ circle: Row; seats: Row[]; moves: Row[]; closes: Row[]; turns: Row[]; den: Row[]; logs: Row[]; secrets: Row[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {
     try {
       const q = [Query.equal("circleId", circleId), Query.orderAsc("$createdAt"), Query.limit(100)];
-      const [circle, seats, moves, closes, turns, den, logs] = await Promise.all([
+      const [circle, seats, moves, closes, turns, den, logs, secrets] = await Promise.all([
         tables.getRow({ databaseId: DB, tableId: "circles", rowId: circleId }),
         tables.listRows({ databaseId: DB, tableId: "seats", queries: [Query.equal("circleId", circleId), Query.orderAsc("seat")] }),
         tables.listRows({ databaseId: DB, tableId: "moves", queries: q }),
@@ -54,8 +54,9 @@ function useCircle(circleId: string) {
         tables.listRows({ databaseId: DB, tableId: "turns", queries: q }),
         tables.listRows({ databaseId: DB, tableId: "night_actions", queries: q }), // the visitor sees only the wolves' rows
         tables.listRows({ databaseId: DB, tableId: "turn_logs", queries: q }), // their wolf's tool calls (X1)
+        tables.listRows({ databaseId: DB, tableId: "secrets", queries: [Query.equal("circleId", circleId)] }), // their wolf's row; every row after the reveal (1b)
       ]);
-      setState({ circle, seats: seats.rows, moves: moves.rows, closes: closes.rows, turns: turns.rows, den: den.rows, logs: logs.rows });
+      setState({ circle, seats: seats.rows, moves: moves.rows, closes: closes.rows, turns: turns.rows, den: den.rows, logs: logs.rows, secrets: secrets.rows });
     } catch (e) { setError(e instanceof AppwriteException ? `${e.code} ${e.type}` : "load failed"); }
   }, [circleId]);
 
@@ -85,6 +86,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
   const [prompt, setPrompt] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [denials, setDenials] = useState<{ seats: number[]; rot: number; x: number; y: number; own: number; status: number; body: string; rowId: string }[]>([]);
+  const [receipt, setReceipt] = useState<string | null>(null);
   const [direct, setDirect] = useState(0);
   const [busy, setBusy] = useState(false);
   const live = useRef<HTMLDivElement>(null);
@@ -92,7 +94,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
   if (error) return <div className="err" role="alert">{error}</div>;
   if (!state) return <section className="sheet" style={{ marginTop: 24, padding: 16 }}><p>{t.play.loading}</p><div className="skel" /><div className="skel" style={{ width: "60%" }} /></section>;
 
-  const { circle, seats, moves, closes, turns, den, logs } = state;
+  const { circle, seats, moves, closes, turns, den, logs, secrets } = state;
   const phase = circle.phase as number, kind = kindOf(phase), ended = circle.status !== "active";
   const out = new Map(closes.filter((c) => c.eliminated).map((c) => [c.eliminated as number, c.eliminatedRole as string]));
   const partner = den.find((d) => d.seat !== circle.visitorSeat)?.seat as number | undefined;
@@ -140,6 +142,20 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
   }
 
   const lastDenial = denials.at(-1);
+  const revealed = circle.status === "revealed";
+  const roleOf = new Map(secrets.map((r) => [r.seat as number, r.role as string]));
+
+  async function share() {
+    setBusy(true); setNote(t.play.sharing);
+    try {
+      const { receiptId } = await call<{ receiptId: string }>("share", { circleId });
+      const url = `${location.origin}${location.pathname}#/r/${receiptId}`;
+      setReceipt(url);
+      try { if (navigator.share) await navigator.share({ title: "Backroom", url }); else { await navigator.clipboard.writeText(url); setNote(t.play.copied); return; } } catch { /* dismissed */ }
+      setNote(null);
+    } catch (e) { setNote(t.play.errors[String(e instanceof ApiCallError ? e.status : "default")] ?? (e as Error).message); }
+    finally { setBusy(false); }
+  }
   const label = (s: Row) => (s.seat === circle.visitorSeat ? t.play.seatYou : s.name);
   // Seat 6 (yours) sits at six o'clock, nearest the thumb. Each bubble has its own grid cell by its seat (styles.css
   // .stage), so bubbles never stack.
@@ -168,6 +184,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
             return (
               <div key={s.$id} className={`seat s${s.seat} ${s.seat === circle.visitorSeat ? "you" : ""} ${speaking === s.seat ? "speaking" : ""} ${isOut ? "out" : ""}`} style={{ gridArea: `s${s.seat}` }}>
                 <b>{s.seat}</b><span>{isOut ? `${t.play.out} · ${t.roles[out.get(s.seat) ?? ""] ?? "?"}` : label(s)}</span>
+                {revealed && !isOut && roleOf.has(s.seat) && <i className={`role ${roleOf.get(s.seat)}`}>{t.roles[roleOf.get(s.seat)!]}</i>}
               </div>
             );
           })}
@@ -201,6 +218,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
               : <div key={e.id} className="line"><span className="no">{e.seat}</span><span><span className="who">{e.who}{e.target ? ` → ${e.target}` : ""}</span> <span dir="auto">{e.text || "—"}</span></span></div>)}
           </div>
         </details>
+        {revealed && <p className="revealed">{t.play.revealed}</p>}
         {stuck && !ended && <div style={{ padding: "8px 16px" }}><button className="btn ghost" onClick={() => void call("continue", { circleId })}>{t.play.continue}</button></div>}
       </div>
 
@@ -221,6 +239,8 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
           <textarea id="wolf-prompt" className="field" dir="auto" maxLength={500} rows={3} value={prompt} placeholder={t.play.promptPlaceholder} onChange={(e) => setPrompt(e.target.value)} />
           <button className="btn full" disabled={busy || ended || !prompt.trim()} onClick={() => void send()}>{t.play.send}</button>
           {note && <p className="note" role="status">{note}</p>}
+          {ended && <button className="btn full" disabled={busy} onClick={() => void share()}>{t.play.share}</button>}
+          {receipt && <a className="note" href={receipt}>{t.play.openReceipt} →</a>}
           {ended && <a className="btn ghost full" href="#/play" style={{ marginTop: 8, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}>{t.play.newGame}</a>}
         </div>
       </div>

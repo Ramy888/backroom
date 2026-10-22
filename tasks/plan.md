@@ -83,7 +83,7 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 - [x] 11. (live: https://backroom.appwrite.network, deployed by `npm run deploy -- --env .env`, 2026-10-22) Web shell and deploy pipeline (Vite, DESIGN tokens, i18n/RTL, anonymous session, Sites + Functions deploy, smoke test)
 - [x] 12. (verified live at 390/1280, EN+AR, no overflow) Circle board (phase strip, seats, transcript via filtered Realtime, templates X2, prompt input)
 - [x] 13. (verified live: network log 404×5 + own 200, stamps pile) Denial moment (the direct JWT read button M3, stamp, why chip X1, scoreboard, live region)
-- [ ] 14. Reveal and receipt (reveal grant, `receipts` snapshot M11 with deploy ID M5, `/r/<id>`, share X3)
+- [x] 14. (test project ✅: `tests/receipts.int.test.ts` 3/3, the receipt opens with no session and survives the sweep; prod deploy pending) Reveal and receipt (reveal grant, `receipts` snapshot M11 with deploy ID M5, `/r/<id>`, share X3)
 - [ ] 15. Caps UI, kill switch, operator page, judge code, always-on demo circle
 
 ### Checkpoint 2 (day-2 gate)

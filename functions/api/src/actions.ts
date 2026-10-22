@@ -3,7 +3,7 @@
 // increment ceiling, keyed to a salted hash of x-appwrite-client-ip (R5), so a fresh anonymous session can't reset them.
 import { createHash, randomInt } from "node:crypto";
 import { Client, TablesDB, Users, Query, ID, AppwriteException } from "node-appwrite";
-import { agentUserId, permsFor, secretId, seatRowId, DATABASE_ID as DB, type CircleView, type Role } from "@backroom/core";
+import { agentUserId, permsFor, receiptSnapshot, secretId, seatRowId, DATABASE_ID as DB, type CircleView, type Role } from "@backroom/core";
 import { resolver, type Job } from "../../engine/src/resolver.js";
 
 export type ApiDeps = {
@@ -13,6 +13,7 @@ export type ApiDeps = {
   fire: (job: Job) => Promise<void>;
   ipSalt: string;
   judgeCode?: string;
+  deploy?: { deployId: string | null; commit: string | null }; // stamped on every receipt (M5)
   now?: () => number;
   caps?: { perIpHour: number; perDay: number; judgePerDay: number; perMonth: number; promptsPerGame: number };
 };
@@ -123,6 +124,29 @@ export function api(deps: ApiDeps) {
       }
       await engine.resendPending(input.circleId);
       return { abstained: stuck.length, state: await engine.resolve(input.circleId, circle.phase) };
+    },
+
+    // X3: publish one public snapshot of a finished circle. secrets permissions never change for this; the snapshot
+    // names seats, not users (M11), and survives the circle's sweep.
+    async share(input: { caller?: string; circleId: string }) {
+      const circle = await ownCircle(input.caller, input.circleId);
+      if (circle.kind !== "werewolf") throw new ApiError(400, "only Werewolf games have receipts");
+      if (circle.status === "active") throw new ApiError(409, "the game has not ended");
+      if (circle.receiptId) return { receiptId: circle.receiptId as string };
+      await engine.reveal(input.circleId); // in case the end path stopped before revealing
+      const q = [Query.equal("circleId", input.circleId), Query.limit(100)];
+      const [seats, secrets, logs] = await Promise.all(["seats", "secrets", "turn_logs"].map((tableId) => db.listRows({ databaseId: DB, tableId, queries: q })));
+      const snapshot = receiptSnapshot({
+        circleId: input.circleId, visitor: circle.visitor, visitorSeat: circle.visitorSeat, winner: circle.winner ?? null, phases: circle.phase,
+        endedAt: circle.$updatedAt, lang: circle.lang ?? "en", deploy: deps.deploy ?? { deployId: null, commit: null },
+        seats: seats!.rows.map((s) => ({ seat: s.seat, name: s.name, alive: s.alive !== false })).sort((a, b) => a.seat - b.seat),
+        secrets: secrets!.rows.map((r) => ({ $id: r.$id, seat: r.seat, role: r.role, $permissions: r.$permissions })).sort((a, b) => a.seat - b.seat),
+        logs: logs!.rows.map((l) => ({ classified: l.classified, foreign: l.foreign ?? 0 })),
+      });
+      const row = await db.createRow({ databaseId: DB, tableId: "receipts", rowId: ID.unique(), permissions: ['read("any")'],
+        data: { snapshot: JSON.stringify(snapshot), deployId: deps.deploy?.deployId ?? null, commit: deps.deploy?.commit ?? null } });
+      await db.updateRow({ databaseId: DB, tableId: "circles", rowId: input.circleId, data: { receiptId: row.$id } });
+      return { receiptId: row.$id };
     },
 
     // Hourly cron: delete expired circles, their rows and their agent users (O1: leftover JWTs die with the users).

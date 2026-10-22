@@ -66,10 +66,22 @@ export function resolver(deps: ResolverDeps) {
       // V3: at most 60 executions per circle, enforced by the database, not by this code.
       const capped = await db.incrementRowColumn({ databaseId: DB, tableId: "circles", rowId: circleId, column: "executions", value: 1, max: 60 })
         .then(() => false).catch(() => true);
-      if (capped) { await db.updateRow({ databaseId: DB, tableId: "circles", rowId: circleId, data: { status: "ended", winner: "stalled" } }); return; }
+      if (capped) { await db.updateRow({ databaseId: DB, tableId: "circles", rowId: circleId, data: { status: "ended", winner: "stalled" } }); await reveal(circleId); return; }
       await deps.fire({ op: "turn", turnId: id });
       await db.updateRow({ databaseId: DB, tableId: "dispatches", rowId: dispatchId(id, "turn"), data: { status: "sent" } });
     }
+  }
+
+  // 1b: once a Werewolf game ends, its visitor may read that circle's role rows, and only those: den talk, night
+  // actions and prompts keep their permissions. Idempotent (a retry or "Continue" may call it again).
+  async function reveal(circleId: string) {
+    const circle = await db.getRow({ databaseId: DB, tableId: "circles", rowId: circleId });
+    if (circle.kind !== "werewolf" || circle.status !== "ended") return circle.status as string;
+    const grant = `read("user:${circle.visitor}")`;
+    for (const r of await list("secrets", Query.equal("circleId", circleId)))
+      if (!r.$permissions.includes(grant)) await db.updateRow({ databaseId: DB, tableId: "secrets", rowId: r.$id, permissions: [...r.$permissions, grant] });
+    await db.updateRow({ databaseId: DB, tableId: "circles", rowId: circleId, data: { status: "revealed" } });
+    return "revealed";
   }
 
   async function resendPending(circleId: string) {
@@ -172,11 +184,13 @@ export function resolver(deps: ResolverDeps) {
         if (fired === "conflict") continue;
         if (fired === "duplicate") return "waiting";
         await fireTurns(circleId, fired);
+        if (ends) await reveal(circleId);
         return ends ? "ended" : "advanced";
       }
       return "waiting";
     },
 
     resendPending,
+    reveal,
   };
 }

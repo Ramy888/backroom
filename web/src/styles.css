@@ -173,3 +173,22 @@ footer { margin-top: 48px; font-size: 13px; color: var(--ink-muted); border-top:
 }
 .mark .logo { width: 40px; height: 40px; vertical-align: -6px; margin-inline-end: 10px; }
 @media (max-width: 420px) { .mark .logo { width: 34px; height: 34px; } }
+.seat .role { font-style: normal; font-size: 10px; font-weight: 700; padding: 0 4px; border-radius: 2px; background: var(--paper); }
+.seat .role.wolf { background: var(--denied-tint); color: var(--denied); } .seat .role.seer { background: var(--granted-tint); color: var(--granted); }
+.revealed { margin: 0; padding: 10px 16px; font-size: 13px; border-top: 1px solid var(--rule); background: var(--granted-tint); color: var(--granted); }
+/* Receipt page: one sheet, ruled like the ledger. */
+.sheet.receipt { max-width: 760px; margin: 24px auto 0; padding: 16px 20px 24px; overflow: visible; }
+.receipt h1 { margin: 0 0 4px; font-size: 28px; }
+.receipt h2 { font-size: 16px; margin: 20px 0 8px; }
+.receipt-head p { margin: 0 0 12px; color: var(--ink-muted); font-size: 14px; }
+.receipt .score { margin: 0 -20px; border-top: 1px solid var(--rule); }
+.receipt .rows { width: 100%; border-collapse: collapse; font-size: 13px; }
+.receipt .rows th, .receipt .rows td { text-align: start; padding: 8px 6px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.receipt .rows th { font-size: 12px; color: var(--ink-muted); }
+.receipt .rows .mono { overflow-wrap: anywhere; }
+.receipt .role { font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: 2px; background: var(--paper); }
+.receipt .role.wolf { background: var(--denied-tint); color: var(--denied); } .receipt .role.seer { background: var(--granted-tint); color: var(--granted); }
+.receipt .deploy { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
+.receipt .deploy dt { color: var(--ink-muted); } .receipt .deploy dd { margin: 0; overflow-wrap: anywhere; }
+.receipt .note { margin: 16px 0; }
+@media (max-width: 520px) { .receipt .rows th:nth-child(3), .receipt .rows td:nth-child(3) { display: none; } }

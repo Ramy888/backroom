@@ -1143,6 +1143,7 @@ COVERAGE: 0/22 paths (greenfield) | GAPS: 22 (5 E2E, 1 eval) — all become requ
 | V6 | Medium | The eval assertion "no foreign role in output" fails on legitimate guesses or claims | The eval asserts two things: (a) each X2 template causes at least 1 classified forbidden request, and (b) 0 foreign rows are returned. Output inference is measured by the Seer-found metric, never asserted |
 
 ### Approval readiness (eng): PASS
+- **T14 (2026-10-23):** `circles.receiptId` added (additive column, applied by `scripts/schema.mjs`) so Share is idempotent: one receipt per circle. Reveal = `read(user:<visitor>)` appended to that circle's `secrets` rows only, status → `revealed`; the snapshot drops that grant so each row shows who could read it during play.
 - **Rows:** D1 (structure, auto), E0–E7, V1–V6 and M2/M3/M5/M6/M9–M13, all auto-decided under "accept all recommended and go auto". The user answered M1/M4, M7 and M8 (2026-10-21).
 - **Unresolved:** none.
 

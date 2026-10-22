@@ -34,6 +34,9 @@ async function setVar(functionId, key, value, secret = true) {
 await setVar("engine", "ANTHROPIC_API_KEY", process.env.ANTHROPIC_API_KEY);
 await setVar("engine", "AGENT_MODEL", process.env.AGENT_MODEL ?? "claude-haiku-5-5", false);
 await setVar("api", "ENGINE_FUNCTION_ID", "engine", false);
+// M5: receipts name the commit the deployed code was built from ("-dirty" when the tree had uncommitted changes).
+const commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim() + (execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim() ? "-dirty" : "");
+await setVar("api", "GIT_COMMIT", commit, false);
 const { variables } = await fns.listVariables({ functionId: "api" });
 if (!variables.some((v) => v.key === "IP_SALT")) await setVar("api", "IP_SALT", randomBytes(16).toString("hex"));
 if (process.env.JUDGE_CODE) await setVar("api", "JUDGE_CODE", process.env.JUDGE_CODE);

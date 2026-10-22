@@ -35,6 +35,7 @@ export const TABLES: TableDef[] = [
       { key: "expiresAt", type: "datetime", required: true },
       { key: "executions", type: "integer", default: 0, min: 0, max: 60 }, // V3: Operator.increment(1, 60)
       { key: "deployId", type: "varchar", size: 40 },
+      { key: "receiptId", type: "varchar", size: 36 }, // the one shared receipt for this circle (X3), additive after the freeze
     ],
     indexes: [{ key: "by_expiry", type: "key", attributes: ["expiresAt"] }, { key: "by_visitor", type: "key", attributes: ["visitor"] }],
   },
