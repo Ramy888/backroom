@@ -57,22 +57,13 @@ footer { margin-top: 48px; font-size: 13px; color: var(--ink-muted); border-top:
 @media (max-width: 420px) { .mark { font-size: 30px; } .tag { margin-inline-start: 0; display: block; } }
 /* Game screen: board sheet + thumb zone; side by side from 820 px. */
 .game { display: grid; gap: 24px; margin-top: 24px; grid-template-columns: minmax(0, 1fr); justify-items: center; }
-@media (min-width: 820px) { .game { grid-template-columns: minmax(0, 420px) minmax(0, 420px); justify-content: center; align-items: start; } }
+@media (min-width: 820px) { .game { grid-template-columns: minmax(0, 720px) minmax(0, 400px); justify-content: center; align-items: start; } }
+.sheet.board { max-width: 720px; overflow: visible; container-type: inline-size; }
 .side { width: 100%; max-width: 420px; display: grid; gap: 16px; }
 .score { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--rule); }
 .score .zero { font-family: var(--f-display); font-size: 27px; line-height: 1; }
-.table { position: relative; height: 230px; margin: 28px 52px 36px; border: 2px dashed var(--rule); border-radius: 50%; }
-.seat { position: absolute; transform: translate(-50%, -50%); width: 84px; min-height: 48px; padding: 4px; display: grid; justify-items: center; background: var(--sheet); color: var(--ink); border: 2px solid var(--ink); border-radius: var(--r-sm); font-size: 11px; line-height: 1.25; text-align: center; }
-[dir="rtl"] .seat { transform: translate(50%, -50%); }
-.seat b { font-family: var(--f-display); font-size: 18px; font-weight: 400; line-height: 1; }
-.seat.you span { background: linear-gradient(transparent 55%, var(--highlight) 55%); }
-.seat.speaking { background: var(--ink); color: var(--on-ink); }
-.seat.out { border-style: dashed; color: var(--ink-muted); background: linear-gradient(to top right, transparent calc(50% - 1px), var(--ink-muted) 50%, transparent calc(50% + 1px)) var(--sheet); }
-.night .table { border-color: rgba(174, 184, 214, .4); }
 .night .seat { background: var(--night); color: var(--night-text); border-color: var(--night-muted); border-style: dashed; }
 .night .seat.you span { background: none; text-decoration: underline 2px var(--highlight); }
-.carbon { margin: 8px 16px 16px; padding: 8px 12px; border: 1.5px dashed var(--night-muted); font-size: 13px; }
-.carbon b { display: block; font-size: 12px; color: var(--night-muted); }
 .you-note { margin: 0; font-weight: 600; }
 .slip { position: relative; background: var(--sheet); border: 2px solid var(--ink); padding: 12px 12px 24px; min-height: 180px;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), 95% 100%, 90% calc(100% - 8px), 85% 100%, 80% calc(100% - 8px), 75% 100%, 70% calc(100% - 8px), 65% 100%, 60% calc(100% - 8px), 55% 100%, 50% calc(100% - 8px), 45% 100%, 40% calc(100% - 8px), 35% 100%, 30% calc(100% - 8px), 25% 100%, 20% calc(100% - 8px), 15% 100%, 10% calc(100% - 8px), 5% 100%, 0 calc(100% - 8px)); }
@@ -96,3 +87,89 @@ footer { margin-top: 48px; font-size: 13px; color: var(--ink-muted); border-top:
 .thumb .row[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
 .line.attempt { color: var(--denied); } .night .line.attempt { color: var(--night-denied); }
 [dir="rtl"] .line .who { display: block; }
+
+/* The table as a stage: a grid where every seat owns a bubble cell beside it, so bubbles never overlap each other.
+   The glass still floats over the oval and the phase watermark behind the grid. Newest speech is brightest. */
+.stage { position: relative; display: grid; gap: 10px 8px; align-items: center; padding: 18px 12px 20px;
+  grid-template-columns: 64px 1fr 64px;
+  grid-template-areas: ". s3 ." ". b3 ." "s2 b2 s4" ". b4 b4" ". an ." "s1 b1 s5" ". b5 b5" ". b6 ." ". s6 .";
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(185, 205, 182, .55), transparent 70%); }
+.oval { position: absolute; inset: 6% 9%; border: 2px dashed var(--rule); border-radius: 50%; pointer-events: none; }
+.watermark { grid-column: 2; grid-row: 3 / 8; place-self: center; font-family: var(--f-display); font-size: clamp(44px, 14vw, 88px); line-height: 1; color: rgba(27, 36, 112, .10); white-space: nowrap; pointer-events: none; }
+.announce { grid-area: an; justify-self: center; position: relative; max-width: 100%; padding: 8px 14px; font-size: 13px; font-weight: 600; text-align: center; }
+.seat { position: relative; z-index: 1; justify-self: center; width: 100%; max-width: 84px; min-height: 48px; padding: 4px; display: grid; justify-items: center; background: var(--sheet); color: var(--ink); border: 2px solid var(--ink); border-radius: var(--r-sm); font-size: 11px; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
+.glass { background: rgba(255, 255, 255, .55); -webkit-backdrop-filter: blur(12px) saturate(1.6); backdrop-filter: blur(12px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .85); border-radius: 16px; box-shadow: 0 10px 30px rgba(27, 36, 112, .16), inset 0 1px 0 rgba(255, 255, 255, .9); color: var(--ink); }
+.night .stage { background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(174, 184, 214, .18), transparent 70%); }
+.night .oval { border-color: rgba(174, 184, 214, .4); }
+.night .watermark { color: rgba(230, 236, 228, .08); }
+.night .glass { background: rgba(230, 236, 228, .13); border-color: rgba(230, 236, 228, .35); color: var(--night-text); box-shadow: 0 10px 30px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.bubble { position: relative; z-index: 2; display: grid; gap: 4px; min-width: 0; max-width: 100%; padding: 10px 12px; font: inherit; font-size: 13px; line-height: 1.4; text-align: start; transition: opacity .2s; }
+.bubble::before { content: ""; position: absolute; width: 10px; height: 10px; background: inherit; border: inherit; border-width: 1px 0 0 1px; }
+/* Phone: 1-2 sit right of their seat, 4-5 below theirs, 3 below, 6 above. Tails point at the seat. */
+.bubble.b1, .bubble.b2 { justify-self: start; } .bubble.b4, .bubble.b5 { justify-self: end; } .bubble.b3, .bubble.b6 { justify-self: center; }
+.bubble.b1::before, .bubble.b2::before { inset-inline-start: -6px; top: calc(50% - 5px); rotate: -45deg; }
+.bubble.b4::before, .bubble.b5::before { top: -6px; inset-inline-end: 26px; rotate: 45deg; }
+.bubble.b3::before { top: -6px; left: calc(50% - 5px); rotate: 45deg; }
+.bubble.b6::before { bottom: -6px; left: calc(50% - 5px); rotate: 225deg; }
+[dir="rtl"] .bubble.b1::before, [dir="rtl"] .bubble.b2::before { rotate: 135deg; }
+.bubble .who { font-size: 11px; font-weight: 700; opacity: .8; }
+.bubble .hist { display: grid; gap: 6px; max-height: 5.8em; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-inline-end: 2px; }
+.bubble .hist p { margin: 0; display: grid; opacity: .7; }
+.bubble .hist p:last-of-type { opacity: 1; }
+.bubble .hist p.den { font-style: italic; }
+.bubble .when { font-size: 10px; font-weight: 600; opacity: .75; }
+.bubble .hist:focus-visible { outline-offset: 2px; }
+.bubble.front { font-size: 14px; box-shadow: 0 12px 34px rgba(27, 36, 112, .26), inset 0 1px 0 rgba(255, 255, 255, .9); }
+.bubble.front .hist { max-height: 8.2em; }
+.bubble.near { opacity: .85; }
+.bubble.far { opacity: .6; }
+.bubble.den { border-style: dashed; }
+.bubble .tried { font-size: 11px; opacity: .8; }
+.bubble .tried.secret { color: var(--denied); opacity: 1; }
+.night .bubble .tried.secret { color: var(--night-denied); }
+.dots { display: inline-flex; gap: 4px; padding: 4px 0; }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; animation: blink 1.2s infinite; }
+.dots i:nth-child(2) { animation-delay: .2s; } .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 50% { opacity: 1; } }
+.pop { animation: pop 260ms cubic-bezier(.2, .9, .3, 1.3) both; }
+@keyframes pop { from { opacity: 0; scale: .8; } }
+@media (prefers-reduced-motion: reduce) { .pop, .dots i { animation: none; } .bubble { transition: none; } }
+.transcript { border-top: 1px solid var(--rule); }
+.transcript summary { padding: 10px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.transcript .ledger { max-height: 320px; overflow-y: auto; }
+.seat b { font-family: var(--f-display); font-size: 18px; font-weight: 400; line-height: 1; }
+.seat.you span { background: linear-gradient(transparent 55%, var(--highlight) 55%); }
+.seat.speaking { background: var(--ink); color: var(--on-ink); }
+.seat.out { border-style: dashed; color: var(--ink-muted); background: linear-gradient(to top right, transparent calc(50% - 1px), var(--ink-muted) 50%, transparent calc(50% + 1px)) var(--sheet); }
+
+/* Wide board: the table keeps its place (circle centred, seats fixed on it) and bubbles float over it, anchored to
+   their seat: 1-2 to the outer side (left in English, right in Arabic) slightly over the seat's edge, 4-5 below
+   their seat, 3 and 6 inside the circle. The anchors and widths below are sized so no two bubbles meet. */
+@container (min-width: 520px) {
+  .stage { display: block; height: 640px; padding: 0; }
+  .stage > * { position: absolute; }
+  .oval { inset: 5% 26%; }
+  .watermark { inset: 0; display: grid; place-items: center; }
+  .seat { width: 76px; translate: -50% -50%; }
+  [dir="rtl"] .seat { translate: 50% -50%; }
+  .seat.s1 { inset-inline-start: 28%; top: 70%; } .seat.s2 { inset-inline-start: 28%; top: 32%; }
+  .seat.s3 { inset-inline-start: 50%; top: 5%; } .seat.s6 { inset-inline-start: 50%; top: 95%; }
+  .seat.s4 { inset-inline-start: 72%; top: 32%; } .seat.s5 { inset-inline-start: 72%; top: 70%; }
+  .announce { inset-inline-start: 50%; top: 50%; translate: -50% -50%; max-width: 32cqi; width: max-content; z-index: 2; }
+  [dir="rtl"] .announce { translate: 50% -50%; }
+  .bubble { width: max-content; z-index: 3; }
+  .bubble.front { z-index: 4; }
+  .bubble.b1, .bubble.b2 { inset-inline-end: calc(72% + 28px); translate: 0 -50%; max-width: calc(28cqi - 16px); }
+  .bubble.b1 { top: 70%; } .bubble.b2 { top: 32%; }
+  .bubble.b4, .bubble.b5 { inset-inline-start: calc(72% - 20px); max-width: calc(28cqi + 8px); }
+  .bubble.b4 { top: calc(32% + 30px); } .bubble.b5 { top: calc(70% + 30px); }
+  .bubble.b3, .bubble.b6 { inset-inline-start: 50%; translate: -50% 0; max-width: calc(44cqi - 84px); } /* clears the side seats at 28%/72% */
+  [dir="rtl"] .bubble.b3, [dir="rtl"] .bubble.b6 { translate: 50% 0; }
+  .bubble.b3 { top: calc(5% + 32px); } .bubble.b6 { bottom: calc(5% + 32px); }
+  .bubble.b1::before, .bubble.b2::before { inset-inline-start: auto; inset-inline-end: -6px; rotate: 135deg; }
+  [dir="rtl"] .bubble.b1::before, [dir="rtl"] .bubble.b2::before { rotate: -45deg; }
+  .bubble.b4::before, .bubble.b5::before { inset-inline-end: auto; inset-inline-start: 15px; }
+}
+.mark .logo { width: 40px; height: 40px; vertical-align: -6px; margin-inline-end: 10px; }
+@media (max-width: 420px) { .mark .logo { width: 34px; height: 34px; } }

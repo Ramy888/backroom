@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Backroom">
+  <!-- The clerk's window (shubbak): an arched opening with bars, a counter ledge, and the red DENIED stamp across it. -->
+  <rect width="64" height="64" rx="12" fill="#1B2470"/>
+  <path d="M15 51V27a17 17 0 0 1 34 0v24z" fill="#E6ECE4"/>
+  <path d="M26.3 11v40M37.7 11v40M15 33h34" stroke="#1B2470" stroke-width="3"/>
+  <rect x="9" y="50" width="46" height="5" rx="1.5" fill="#E6ECE4"/>
+  <g transform="rotate(-14 41 40)">
+    <rect x="27" y="33" width="28" height="14" rx="2" fill="#E6ECE4" stroke="#C41E3A" stroke-width="3.2"/>
+    <path d="M32 40h18" stroke="#C41E3A" stroke-width="3.2" stroke-linecap="round"/>
+  </g>
+</svg>

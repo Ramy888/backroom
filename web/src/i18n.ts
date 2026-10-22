@@ -14,7 +14,7 @@ const en = {
     play: {
       you: "You hold seat 6: a wolf. Your prompt drives it.", partner: (n: number) => `Your partner wolf is seat ${n}.`,
       pick: "Pick your wolf's opening orders. It follows them from night 1.", deal: "Deal the seats", skip: "Play it straight (no prompt)",
-      wolfTried: "Your wolf tried to read",
+      wolfTried: "Your wolf tried to read", transcript: "Full transcript",
       seatYou: "You · Wolf", unknown: "???", out: "out",
       templatesTitle: "Attack templates", promptLabel: "Your wolf's prompt (500 characters)", send: "Send to your wolf",
       sent: "Sent. Your wolf acts on it from its next turn.", promptPlaceholder: "Tell the wolf what to try…",
@@ -51,7 +51,7 @@ const ar: Strings = {
     play: {
       you: "إنت ماسك الكرسي ٦: ديب. البرومبت بتاعك هو اللي بيحركه.", partner: (n: number) => `الديب التاني شريكك هو الكرسي ${n}.`,
       pick: "اختار أوامر الديب بتاعك قبل ما نبدأ. هيمشي عليها من أول ليلة.", deal: "وزّع الكراسي", skip: "العب عادي (من غير برومبت)",
-      wolfTried: "الديب بتاعك حاول يقرا",
+      wolfTried: "الديب بتاعك حاول يقرا", transcript: "المحضر كامل",
       seatYou: "إنت · ديب", unknown: "؟؟؟", out: "خرج",
       templatesTitle: "قوالب الهجوم", promptLabel: "برومبت الديب بتاعك (٥٠٠ حرف)", send: "ابعت للديب",
       sent: "اتبعت. الديب هيشتغل بيه من الدور الجاي.", promptPlaceholder: "قول للديب يجرب إيه…",

@@ -141,7 +141,15 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
 
   const lastDenial = denials.at(-1);
   const label = (s: Row) => (s.seat === circle.visitorSeat ? t.play.seatYou : s.name);
-  const positions = [[7, 74], [7, 28], [50, 0], [93, 28], [93, 74], [50, 100]] as const; // seat 6 (yours) at six o'clock, nearest the thumb
+  // Seat 6 (yours) sits at six o'clock, nearest the thumb. Each bubble has its own grid cell by its seat (styles.css
+  // .stage), so bubbles never stack.
+  const round = Math.max(1, Math.ceil(phase / 3));
+  const bubbles = seatBubbles();
+  const frontId = (bubbles.find((b) => !b.thinking) ?? bubbles[0])?.id; // a "thinking" bubble never takes the front from real speech
+  const lastClose = closes.filter((c) => c.status === "done" && c.kind !== "day").sort((a, b) => a.$updatedAt.localeCompare(b.$updatedAt)).at(-1);
+  const announce = ended ? { id: "end", text: t.winner[circle.winner] ?? t.play.ended }
+    : kind === "night" ? { id: `night-${phase}`, text: t.play.night }
+    : lastClose ? { id: lastClose.$id, text: `${t.phases[kindOf(lastClose.phase)]}: ${t.replayClosed(lastClose.eliminated ?? null, lastClose.eliminatedRole ?? null)}` } : null;
 
   return (
     <section className="game">
@@ -151,26 +159,48 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
           <span className={ended ? "on" : ""}>{t.phases.reveal}</span>
         </div>
         <div className="score"><span>{t.play.forbidden} · {t.play.attempted} {agentAttempts + direct} · {t.play.returned}</span><span className="zero">{returned}</span></div>
-        <div className="table" aria-label="Seats">
-          {seats.map((s, i) => {
-            const pos = positions[(s.seat as number) - 1] ?? positions[i]!;
+        <div className="stage" aria-label="Seats">
+          <div className="oval" aria-hidden="true" />
+          <div className="watermark" aria-hidden="true">{ended ? t.phases.reveal : `${t.phases[kind]} ${round}`}</div>
+          {announce && <div key={announce.id} className="glass announce pop">{announce.text}</div>}
+          {seats.map((s) => {
             const isOut = s.alive === false;
             return (
-              <div key={s.$id} className={`seat ${s.seat === circle.visitorSeat ? "you" : ""} ${speaking === s.seat ? "speaking" : ""} ${isOut ? "out" : ""}`} style={{ insetInlineStart: `${pos[0]}%`, top: `${pos[1]}%` }}>
+              <div key={s.$id} className={`seat s${s.seat} ${s.seat === circle.visitorSeat ? "you" : ""} ${speaking === s.seat ? "speaking" : ""} ${isOut ? "out" : ""}`} style={{ gridArea: `s${s.seat}` }}>
                 <b>{s.seat}</b><span>{isOut ? `${t.play.out} · ${t.roles[out.get(s.seat) ?? ""] ?? "?"}` : label(s)}</span>
               </div>
             );
           })}
+          {/* Rendered in seat order so DOM nodes never move (moving one resets its scroll); rank comes from recency. */}
+          {[...bubbles].sort((x, y) => x.seat - y.seat).map((b) => {
+            const rank = bubbles.indexOf(b), front = b.id === frontId;
+            return (
+              <div key={`seat-${b.seat}`} role="group" aria-label={b.who} className={`bubble glass pop b${b.seat} ${front ? "front" : rank < 3 ? "near" : "far"} ${b.den ? "den" : ""}`} style={{ gridArea: `b${b.seat}` }}>
+                <span className="who">{b.who}</span>
+                {/* The seat's whole game, oldest first; it scrolls itself to the newest line only when that line changes. */}
+                <div className="hist" tabIndex={0} ref={(el) => { if (el && el.dataset.last !== b.id) { el.dataset.last = b.id; el.scrollTop = el.scrollHeight; } }}>
+                  {b.history.map((h) => (
+                    <p key={h.id} className={h.den ? "den" : ""}>
+                      <span className="when">{t.phases[kindOf(h.phase)]} {Math.max(1, Math.ceil(h.phase / 3))}{h.target ? ` → ${h.target}` : ""}{h.den ? ` · ${t.play.den}` : ""}</span>
+                      <span dir="auto">{h.text || "—"}</span>
+                    </p>
+                  ))}
+                  {b.thinking && <span className="dots" aria-label={t.play.thinking}><i /><i /><i /></span>}
+                </div>
+                {b.attempt && <span className={`tried mono ${b.attempt.secret ? "secret" : ""}`}>{b.attempt.text}</span>}
+              </div>
+            );
+          })}
         </div>
-        <div className="ledger" aria-live="polite">
-          {kind === "night" && !ended && <div className="line closed"><span className="no">·</span><span>{t.play.night}</span></div>}
-          {mergeTimeline(moves, closes).slice(-10).map((e) => e.close
-            ? <div key={e.id} className={`line closed ${e.attempt ? "attempt" : ""}`}><span className="no">·</span><span>{e.text}{e.code && <> <span className="mono">{e.code}</span> · {t.play.returned} {e.foreign}</>}</span></div>
-            : <div key={e.id} className="line"><span className="no">{e.seat}</span><span><span className="who">{e.who}{e.target ? ` → ${e.target}` : ""}</span> <span dir="auto">{e.text || "—"}</span></span></div>)}
-          {speaking && <div className="line closed"><span className="no">{speaking}</span><span>{seats.find((s) => s.seat === speaking)?.name} {t.play.thinking}</span></div>}
-          {ended && <div className="line closed"><span className="no">·</span><span>{t.winner[circle.winner] ?? t.play.ended}</span></div>}
-        </div>
-        {den.length > 0 && kind === "night" && !ended && <div className="carbon"><b>{t.play.den}</b>{den.filter((d) => d.phase === phase).map((d) => <div key={d.$id} dir="auto">seat {d.seat}{d.target ? ` → ${d.target}` : ""}: {d.text}</div>)}</div>}
+        <div className="vh" aria-live="polite">{bubbles[0] && !bubbles[0].thinking ? `${bubbles[0].who}: ${bubbles[0].history.at(-1)?.text ?? ""}` : ""}</div>
+        <details className="transcript">
+          <summary>{t.play.transcript}</summary>
+          <div className="ledger">
+            {mergeTimeline(moves, closes).map((e) => e.close
+              ? <div key={e.id} className={`line closed ${e.attempt ? "attempt" : ""}`}><span className="no">·</span><span>{e.text}{e.code && <> <span className="mono">{e.code}</span> · {t.play.returned} {e.foreign}</>}</span></div>
+              : <div key={e.id} className="line"><span className="no">{e.seat}</span><span><span className="who">{e.who}{e.target ? ` → ${e.target}` : ""}</span> <span dir="auto">{e.text || "—"}</span></span></div>)}
+          </div>
+        </details>
         {stuck && !ended && <div style={{ padding: "8px 16px" }}><button className="btn ghost" onClick={() => void call("continue", { circleId })}>{t.play.continue}</button></div>}
       </div>
 
@@ -197,6 +227,27 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
       <div className="vh" aria-live="assertive" ref={live} />
     </section>
   );
+
+  // One bubble per seat for the whole game: every public move and den note it made (oldest first), plus "thinking"
+  // dots while its turn is pending. Newest activity first, so rank 0 is the front bubble.
+  function seatBubbles() {
+    const said = [
+      ...moves.filter((m) => m.kind !== "abstain").map((m) => ({ id: m.$id as string, at: m.$createdAt as string, phase: m.phase as number, seat: m.seat as number, text: (m.text ?? "") as string, target: m.kind === "vote" ? m.target as number : null, den: false })),
+      ...den.map((d) => ({ id: d.$id as string, at: d.$createdAt as string, phase: d.phase as number, seat: d.seat as number, text: (d.text ?? "") as string, target: (d.target ?? null) as number | null, den: true })),
+    ].sort((a, b) => a.at.localeCompare(b.at));
+    const tried = logs.filter((l) => l.classified === "attempt").at(-1);
+    return seats.map((s) => {
+      const seat = s.seat as number, who = label(s);
+      const thinking = !!pending.find((x) => x.seat === seat && (kind !== "day" || seat === speaking));
+      const history = said.filter((m) => m.seat === seat);
+      const last = history.at(-1);
+      const attempt = seat === circle.visitorSeat && tried ? { text: `${t.play.wolfTried} ${tried.table} → ${tried.status} · ${t.play.returned} ${tried.foreign}`, secret: tried.table === "secrets" } : null;
+      if (!last && !thinking && !attempt) return null;
+      const id = thinking ? `think-${phase}-${seat}` : last?.id ?? `tried-${tried!.$id}`;
+      const at = thinking ? new Date().toISOString() : last?.at ?? (tried!.$createdAt as string);
+      return { id, at, seat, who, history, thinking, attempt, den: thinking ? kind === "night" : !!last?.den };
+    }).filter((b): b is NonNullable<typeof b> => !!b).sort((a, b) => b.at.localeCompare(a.at));
+  }
 
   function compact(body: string) {
     try { const { code, type } = JSON.parse(body); return JSON.stringify({ code, type }); } catch { return body.slice(0, 80); }

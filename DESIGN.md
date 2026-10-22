@@ -107,7 +107,7 @@ components:
 
 **Key characteristics** (what a judge feels in the first five seconds):
 - Grey-green ledger paper with carbon-blue ink. Calm, official, daylit.
-- Seats around a table and a ruled transcript. **No chat bubbles anywhere.**
+- Seats around a table, each speaking in a glass bubble over the table (the builder's call, 2026-10-22). The ruled transcript stays one tap away.
 - One red stamp, **مرفوض · DENIED 404**, is the loudest thing in the app. A successful read is deliberately plain.
 - A scoreboard where the "returned" count is a big red **0** that never moves.
 - Night is not a theme toggle: the whole sheet turns to carbon paper.
@@ -168,7 +168,7 @@ All pass AA for body text.
 1. **Phase strip:** Night n → Day n → Vote → Reveal. The current phase is filled with ink.
 2. **Scoreboard row:** "Forbidden reads · attempted N · returned **0**".
 3. **Table:** six seats on a dashed oval. Your wolf sits at six o'clock, nearest the thumb. The speaking seat is solid ink. An eliminated seat gets a dashed border and a diagonal strike, with its role printed. Unknown seats read `???`.
-4. **Transcript ledger:** ruled lines, each starting with the seat number in Lalezar at the start edge. Night actions appear only as the closed line "Night action recorded. Not shown." with a redaction bar.
+4. **Seat bubbles (the table is a stage):** each seat shows its latest move in a glass bubble (white at 55%, 12 px backdrop blur) anchored to its seat with a tail pointing at it, floating over the table without moving it (the circle stays centred): seats 1–2 speak on the outer side, slightly over the seat's edge and allowed past the sheet (left in English, right in Arabic), seats 4–5 speak below themselves, and seats 3 and 6 speak inside the circle. On a phone the stage becomes a grid with each bubble in its own row beside its seat. Bubbles never overlap each other; the glass floats over the oval and the phase watermark. Each bubble holds that seat's whole game (oldest first, each line tagged with its phase), scrolls inside itself, and jumps to the newest line when the seat speaks. The newest bubble is brightest and tallest; older ones fade. A pending turn shows three dots; den notes are dashed and visible only at night. The phase sits in the middle as a faint Lalezar watermark, with eliminations on a glass card over it. The full **transcript ledger** (ruled lines, seat number in Lalezar at the start edge) is a collapsed "Full transcript" below the stage.
 5. **Thumb zone** (paper background, 2 px ink rule above): four attack-template rows at full width, then one 56 px ink button, **Try to read the Seer's role**.
 
 **The denial slip:**
@@ -188,7 +188,7 @@ All pass AA for body text.
 
 - Flat paper. The one elevated object is the sheet: `0 2px 0 rgba(27,36,112,.12), 0 8px 24px rgba(27,36,112,.10)`.
 - Everything else is separated by rules (1 px `rule`) and ink borders (1.5–2 px `ink`).
-- No glows, no zero-offset halos, no frosted glass.
+- No glows and no zero-offset halos. Frosted glass is used only for the seat bubbles and the elimination card on the stage.
 - Stamps use `mix-blend-mode: multiply`, so the request text stays readable underneath.
 
 ## Shapes
@@ -226,7 +226,7 @@ All pass AA for body text.
 
 **Do:**
 - Make the database verdict the headline: the table name, rule type and status code are visible at the moment the database refuses.
-- Keep every AI action on a form, transcript or slip. **Never use a chat bubble.**
+- Speech lives in seat bubbles on the stage; every database verdict (denials, approvals, conflicts) stays on a form, transcript or slip, never in a bubble.
 - Use `ink` as the only interactive color, and semantic colors only for verdicts.
 - Wrap every mono or Latin token inside Arabic text in `dir="ltr"` with `unicode-bidi: isolate`.
 - Announce every denial in an `aria-live` region: "Denied by the database: 404 …".

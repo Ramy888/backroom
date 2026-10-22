@@ -19,7 +19,7 @@ export function App() {
   return (
     <div className="wrap">
       <header className="top">
-        <a className="mark" href="#/">Backroom<span className="tag">{t.tag}</span></a>
+        <a className="mark" href="#/"><img className="logo" src="/logo.svg" alt="" width="40" height="40" />Backroom<span className="tag">{t.tag}</span></a>
         <button className="tog" onClick={() => setLang(lang === "en" ? "ar" : "en")} aria-label="Switch language">{t.other}</button>
       </header>
       {route[0] === "play" ? <Play t={t} lang={lang} /> : route[0] === "c" && route[1] ? <Game key={route[1]} t={t} circleId={route[1]} /> : <Landing t={t} />}
