@@ -11,7 +11,7 @@ const store = { get: (k: string) => { try { return sessionStorage.getItem(k); } 
 // Turns an api refusal into the visitor's own-language message (by the api's stable code, then the HTTP status).
 export const errorText = (t: Strings, e: unknown) =>
   (e instanceof ApiCallError ? t.play.errors[e.code ?? ""] ?? t.play.errors[String(e.status)] : null) ?? t.play.errors.default!;
-const judgeStore = { get: () => { try { return localStorage.getItem("judge-code") ?? ""; } catch { return ""; } }, set: (v: string) => { try { localStorage.setItem("judge-code", v); } catch { /* private mode */ } } };
+export const judgeStore = { get: () => { try { return localStorage.getItem("judge-code") ?? ""; } catch { return ""; } }, set: (v: string) => { try { localStorage.setItem("judge-code", v); } catch { /* private mode */ } } };
 
 // #/play: the visitor writes (or picks) their wolf's opening orders, then the game is dealt with them already in place.
 export function Play({ t, lang }: { t: Strings; lang: string }) {
@@ -42,10 +42,10 @@ export function Play({ t, lang }: { t: Strings; lang: string }) {
       <button className="btn big full" disabled={busy || !prompt.trim()} onClick={() => void deal(prompt)}>{busy ? t.starting : t.play.deal}</button>
       <button className="btn ghost full" disabled={busy} onClick={() => void deal("")}>{t.play.skip}</button>
       {err && <div className="err" role="alert">{err} {DEMO_CIRCLE && <a href={`#/c/${DEMO_CIRCLE}`}>{t.play.demo} →</a>}</div>}
-      <details className="judge" open={!!judgeCode}>
+      <details className="judge">
         <summary>{t.play.judge}</summary>
         <p className="note">{t.play.judgeHint}</p>
-        <input className="field" aria-label={t.play.judge} value={judgeCode} onChange={(e) => setJudgeCode(e.target.value)} autoComplete="off" spellCheck={false} />
+        <input className="field" type="password" aria-label={t.play.judge} value={judgeCode} onChange={(e) => setJudgeCode(e.target.value)} autoComplete="off" spellCheck={false} />
       </details>
     </section>
   );

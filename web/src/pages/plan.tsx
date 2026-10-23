@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Channel, Query } from "appwrite";
 import { DAHAB_OPTIONS, DEALBREAKERS, DEFAULT_HUMAN_LIMITS, WEEKENDS, otherWeekend, type Limits } from "@backroom/core";
 import { call, DB, ensureSession, realtime, tables, ApiCallError } from "../aw";
-import { errorText } from "./game";
+import { errorText, judgeStore } from "./game";
 import type { Strings } from "../i18n";
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -42,7 +42,7 @@ export function PlanStart({ t, lang }: { t: Strings; lang: string }) {
     setBusy(true); setErr(null);
     try {
       await ensureSession();
-      const { circleId } = await call<{ circleId: string }>("setup", { kind: "plan", lang, limits });
+      const { circleId } = await call<{ circleId: string }>("setup", { kind: "plan", lang, limits, judgeCode: judgeStore.get() || undefined }); // the judge code saved on the Play page
       location.replace(`#/p/${circleId}`);
     } catch (e) { setErr(e instanceof ApiCallError && e.code === "limits" ? e.message : errorText(t, e)); setBusy(false); }
   }

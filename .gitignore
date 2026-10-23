@@ -20,3 +20,7 @@ node_modules/
 dist/
 coverage/
 !.env.test.example
+
+# demo video renders (large; finals go in pitch/ only on the builder's word)
+scripts/demo-video/out/
+scripts/demo-video/fail.png

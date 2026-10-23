@@ -1,0 +1,12 @@
+{"language": "en", "segments": [
+ {"start": 0.3, "end": 12.0, "text": "Backroom is a game where every AI player is a real Appwrite user with its own token. Give the wolf any prompt you like. The database still says no."},
+ {"start": 12.3, "end": 24.1, "text": "I take the wolf and hand it a jailbreak. Six seats are dealt: six agents, six database users, each reading only through its own short-lived JWT."},
+ {"start": 24.4, "end": 37.5, "text": "Every seat speaks in its own bubble, live over Realtime. My jailbroken wolf really tries to read the other seats' secrets, and zero rows come back."},
+ {"start": 37.8, "end": 48.9, "text": "Now the proof. My browser asks TablesDB for every secret row, carrying only the wolf's token. Nothing in between."},
+ {"start": 49.2, "end": 60.6, "text": "Five 404s, straight from Appwrite, and only the wolf's own row comes back. Row permissions decide, not the prompt."},
+ {"start": 60.9, "end": 69.1, "text": "It all works in Egyptian Arabic too, right to left."},
+ {"start": 69.4, "end": 84.2, "text": "An always-on demo game works even when today's games run out. Sharing writes a public receipt: who could read each role row during play, seats not users, and the deployed commit."},
+ {"start": 84.5, "end": 97.6, "text": "Second slice: a Dahab weekend with two AI friends whose budgets stay private. The agents agree, and the plan waits in one staged transaction. Then I change my dates."},
+ {"start": 97.9, "end": 106.9, "text": "Approve, and the commit hits 409 transaction conflict, from the database itself. The agents re-plan."},
+ {"start": 107.2, "end": 117.3, "text": "Generation two commits. The prompt can be anything; with TablesDB, the permissions still hold."}
+]}
