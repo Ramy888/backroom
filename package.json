@@ -11,6 +11,7 @@
     "test": "vitest run --project unit",
     "test:int": "vitest run --project integration",
     "deploy": "node scripts/deploy.mjs",
+    "eval:inject": "EVAL=1 vitest run --project integration tests/eval-inject.int.test.ts",
     "keys:test": "node scripts/mint-key.mjs --env .env.test --project backroom-test && node scripts/mint-key.mjs --env .env.test --project backroom-test --var APPWRITE_AGENT_KEY --scopes users.write,rows.write,execution.write && node scripts/mint-key.mjs --env .env.test --project backroom-test --var APPWRITE_RESOLVER_KEY --scopes rows.read,rows.write,execution.write"
   },
   "devDependencies": {

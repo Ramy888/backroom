@@ -98,12 +98,12 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 - [ ] The Plan conflict demo works in both orders on the live URL
 
 ### Phase 4: Expansions and proof
-- [ ] 18. X4 static landing replay from the recorded JSON
-- [ ] 19. Injection eval (V6) and the Seer-found batch (**ask the builder before the paid run**)
+- [x] 18. (✅ landing makes 0 Appwrite requests: 10 resources, replay.json only) X4 static landing replay from the recorded JSON
+- [~] 19. (eval ✅ `npm run eval:inject`: 4/4 then 3/4 attempts, 0 foreign rows every run; Seer batch waits for the builder's OK) Injection eval (V6) and the Seer-found batch (**ask the builder before the paid run**)
 - [ ] 20. X5 bring-your-own-agent seat (**only if Day 0 said go, and Day 4 has slack**)
 
 ### Phase 5: Submit
-- [ ] 21. README ("Why TablesDB", Day-0 results, credits, static proof page M10) and EN/AR copy pass
+- [x] 21. (README for judges: why TablesDB map, verify-it-yourself, Plan, architecture, limits, probes, tests, setup, credits, proof GIF) README ("Why TablesDB", Day-0 results, credits, static proof page M10) and EN/AR copy pass
 - [ ] 22. Demo video (headless recording plus narration; **ask the builder before the paid narration run**), then submit
 
 ### Checkpoint: Complete
