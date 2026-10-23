@@ -104,7 +104,7 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 
 ### Phase 5: Submit
 - [x] 21. (README for judges: why TablesDB map, verify-it-yourself, Plan, architecture, limits, probes, tests, setup, credits, proof GIF) README ("Why TablesDB", Day-0 results, credits, static proof page M10) and EN/AR copy pass
-- [ ] 22. Demo video (headless recording plus narration; **ask the builder before the paid narration run**), then submit
+- [~] 22. (video ✅ 1:58, narrated in the builder's voice (Cartesia), unlisted at https://youtu.be/Q1l_BJp5G2M; submission waits for the public repo) Demo video (headless recording plus narration; **ask the builder before the paid narration run**), then submit
 
 ### Checkpoint: Complete
 - [ ] Every success criterion in docs/designs/backroom.md is met or explicitly cut

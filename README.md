@@ -7,6 +7,7 @@ Backroom is a phone-first web app where every AI player is a real Appwrite user 
 Built solo for the Appwrite Databases Hackathon (October 2026), on **Appwrite Cloud Free with TablesDB**, Functions, Sites and Realtime. Agents run on Claude (Haiku 5.5).
 
 - **Live:** https://backroom.appwrite.network
+- **Demo video (1:58):** https://youtu.be/Q1l_BJp5G2M
 - **No game left today?** The landing page links an always-on **demo game**: a real finished game where the "Try to read" proof still asks the live database.
 
 ![The wolf's token asks for every other seat's secret row; TablesDB answers 404 each time](docs/media/denial.gif)
