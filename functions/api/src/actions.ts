@@ -256,9 +256,13 @@ export function api(deps: ApiDeps) {
     },
 
     // Hourly cron: delete expired circles, their rows and their agent users (O1: leftover JWTs die with the users).
-    async sweep() {
+    async sweep(budgetMs = 40_000) {
+      const started = Date.now();
       const expired = (await db.listRows({ databaseId: DB, tableId: "circles", queries: [Query.lessThan("expiresAt", new Date(now()).toISOString()), Query.limit(25)] })).rows;
+      let swept = 0;
       for (const c of expired) {
+        // Stay well inside the Function's 60 s timeout; a backlog simply continues next hour (every step is idempotent).
+        if (Date.now() - started > budgetMs) break;
         await db.deleteRow({ databaseId: DB, tableId: "meta", rowId: `${c.$id}-restaged` }).catch(() => {});
         for (const t of ["turn_logs", "dispatches", "moves", "night_actions", "turns", "phases", "approvals", "plan_candidates", "secrets", "seats"]) {
           for (;;) {
@@ -269,8 +273,9 @@ export function api(deps: ApiDeps) {
         }
         for (let seat = 1; seat <= 6; seat++) await users.delete({ userId: agentUserId(c.$id, seat) }).catch(() => {});
         await db.deleteRow({ databaseId: DB, tableId: "circles", rowId: c.$id });
+        swept++;
       }
-      return { swept: expired.length };
+      return { swept, remaining: expired.length - swept };
     },
   };
 }

@@ -80,8 +80,12 @@ describe("api", () => {
     const v = await newVisitor();
     const { circleId } = await make().setup({ caller: v, ip: "192.0.2.77" });
     await db.updateRow({ databaseId: DB, tableId: "circles", rowId: circleId, data: { expiresAt: new Date(Date.now() - 1000).toISOString() } });
-    await make().sweep();
+    const paused = await make().sweep(-1); // budget already spent: nothing is touched, the backlog waits for the next run
+    expect(paused.swept).toBe(0);
+    expect(paused.remaining).toBeGreaterThanOrEqual(1);
+    expect(await db.getRow({ databaseId: DB, tableId: "circles", rowId: circleId }).catch(() => null)).not.toBeNull();
+    for (let run = 0; run < 8 && (await db.getRow({ databaseId: DB, tableId: "circles", rowId: circleId }).then(() => true, () => false)); run++) await make().sweep(); // other expired games may queue ahead
     expect(await db.getRow({ databaseId: DB, tableId: "circles", rowId: circleId }).catch(() => null)).toBeNull();
     expect(await users.get({ userId: agentUserId(circleId, 1) }).catch(() => null)).toBeNull();
-  }, 180_000);
+  }, 420_000);
 });
