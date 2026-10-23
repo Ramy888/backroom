@@ -13,12 +13,13 @@ export async function ensureSession() {
   catch { await account.createAnonymousSession(); return account.get(); }
 }
 
-export class ApiCallError extends Error { constructor(readonly status: number, message: string) { super(message); } }
+export class ApiCallError extends Error { constructor(readonly status: number, message: string, readonly code?: string) { super(message); } }
+export const DEMO_CIRCLE = import.meta.env.VITE_DEMO_CIRCLE_ID as string | undefined;
 
 // Calls an api action synchronously and returns its JSON, throwing the api's own error message on failure.
 export async function call<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
   const ex = await functions.createExecution({ functionId: "api", body: JSON.stringify({ action, ...body }), async: false });
   const data = JSON.parse(ex.responseBody || "{}");
-  if (ex.responseStatusCode >= 400) throw new ApiCallError(ex.responseStatusCode, data.error ?? "request failed");
+  if (ex.responseStatusCode >= 400) throw new ApiCallError(ex.responseStatusCode, data.error ?? "request failed", data.code);
   return data as T;
 }

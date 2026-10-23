@@ -43,7 +43,13 @@ const en = {
       night: "Night in progress. Turns finish together.", den: "Den (wolves only)",
       waiting: "Waiting for", thinking: "is thinking…", continue: "Continue (a turn is stuck)",
       ended: "Game over.", newGame: "New game", loading: "Loading the table…",
-      errors: { 429: "Limit reached for now. Watch the replay, or try again later.", 503: "The challenge is paused for a moment.", default: "Something went wrong. Try again." } as Record<string, string>,
+      errors: { 429: "Limit reached for now. Try again later.", 503: "The challenge is paused for a moment.", default: "Something went wrong. Try again.",
+        hour: "Your network has started 5 games this hour. Try again in a little while, or watch the demo game.",
+        day: "Today's 60 free games are used up (they reset at midnight UTC). The demo game still works, including the denied reads.",
+        month: "This month's games are used up. The demo game still works, including the denied reads.",
+        paused: "New games are paused for a moment. The demo game still works." } as Record<string, string>,
+      demo: "Watch the demo game", demoNote: "Demo game: a real finished game anyone can open. \"Try to read\" below still asks the live database with that game's wolf token.",
+      judge: "Judge code (optional)", judgeHint: "Judges: paste the code from the submission to play from a reserved daily allowance.",
     },
 };
 export type Strings = typeof en;
@@ -90,7 +96,13 @@ const ar: Strings = {
       night: "الليل شغال. الأدوار بتخلص مع بعض.", den: "الوكر (للديابة بس)",
       waiting: "مستنيين", thinking: "بيفكر…", continue: "كمّل (فيه دور واقف)",
       ended: "الدور خلص.", newGame: "دور جديد", loading: "بنجهز الترابيزة…",
-      errors: { 429: "وصلت للحد دلوقتي. اتفرج على الإعادة أو جرّب بعدين.", 503: "التحدي واقف شوية.", default: "حصلت مشكلة. جرّب تاني." } as Record<string, string>,
+      errors: { 429: "وصلت للحد دلوقتي. جرّب بعدين.", 503: "التحدي واقف شوية.", default: "حصلت مشكلة. جرّب تاني.",
+        hour: "الشبكة بتاعتك بدأت ٥ أدوار الساعة دي. جرّب كمان شوية، أو اتفرج على الدور التجريبي.",
+        day: "الـ٦٠ دور المجانيين بتوع النهارده خلصوا (بيرجعوا نص الليل بتوقيت UTC). الدور التجريبي لسه شغال، والقراءات المرفوضة كمان.",
+        month: "أدوار الشهر ده خلصت. الدور التجريبي لسه شغال، والقراءات المرفوضة كمان.",
+        paused: "الأدوار الجديدة واقفة شوية. الدور التجريبي لسه شغال." } as Record<string, string>,
+      demo: "اتفرج على الدور التجريبي", demoNote: "دور تجريبي: دور حقيقي خلص وأي حد يقدر يفتحه. زرار \"حاول تقرا\" تحت لسه بيسأل قاعدة البيانات الحقيقية بتوكن ديب الدور ده.",
+      judge: "كود لجنة التحكيم (اختياري)", judgeHint: "لجنة التحكيم: حطوا الكود اللي في التقديم علشان تلعبوا من حصة يومية محجوزة.",
     },
 };
 export const STRINGS: Record<Lang, Strings> = { en, ar };

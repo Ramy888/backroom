@@ -12,7 +12,7 @@ import { parseArgs } from "node:util";
 const { values } = parseArgs({ options: { env: { type: "string", default: ".env.test" } } });
 process.loadEnvFile(values.env);
 const fns = new Functions(new Client().setEndpoint(process.env.APPWRITE_ENDPOINT).setProject(process.env.APPWRITE_PROJECT_ID).setKey(process.env.APPWRITE_API_KEY));
-const SCOPES = ["users.read", "users.write", "rows.read", "rows.write", "execution.write"];
+const SCOPES = ["users.read", "users.write", "rows.read", "rows.write", "execution.read", "execution.write"]; // keep in sync with core FUNCTION_SCOPES
 
 const defs = [
   { id: "engine", execute: [], timeout: 120, interval: 0 },
@@ -40,6 +40,8 @@ await setVar("api", "GIT_COMMIT", commit, false);
 const { variables } = await fns.listVariables({ functionId: "api" });
 if (!variables.some((v) => v.key === "IP_SALT")) await setVar("api", "IP_SALT", randomBytes(16).toString("hex"));
 if (process.env.JUDGE_CODE) await setVar("api", "JUDGE_CODE", process.env.JUDGE_CODE);
+if (process.env.OPERATOR_CODE) await setVar("api", "OPERATOR_CODE", process.env.OPERATOR_CODE);
+if (process.env.DEMO_CIRCLE_ID) await setVar("api", "DEMO_CIRCLE_ID", process.env.DEMO_CIRCLE_ID, false);
 console.log("variables set (values not shown)");
 
 for (const d of defs) {

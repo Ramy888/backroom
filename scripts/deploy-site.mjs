@@ -15,7 +15,7 @@ const sites = new Sites(client), proxy = new Proxy(client);
 const SITE = "web";
 
 // Vite gives already-set env vars priority over web/.env.local, so the bundle always targets this env file's project.
-execFileSync("npx", ["vite", "build"], { cwd: "web", stdio: "inherit", env: { ...process.env, VITE_APPWRITE_ENDPOINT: endpoint, VITE_APPWRITE_PROJECT_ID: project } });
+execFileSync("npx", ["vite", "build"], { cwd: "web", stdio: "inherit", env: { ...process.env, VITE_APPWRITE_ENDPOINT: endpoint, VITE_APPWRITE_PROJECT_ID: project, VITE_DEMO_CIRCLE_ID: process.env.DEMO_CIRCLE_ID ?? "" } });
 const tgz = join(tmpdir(), `site-${Date.now()}.tar.gz`);
 execFileSync("tar", ["-czf", tgz, "-C", "web/dist", "."]);
 

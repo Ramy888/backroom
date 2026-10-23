@@ -1,7 +1,8 @@
 // engine Function (async, invoked only by api and by itself through createExecution). Routes op=turn and op=resolve.
 // The per-execution key arrives in x-appwrite-key with this Function's configured scopes (decision B1).
 import Anthropic from "@anthropic-ai/sdk";
-import { Client, Functions } from "node-appwrite";
+import { AppwriteException, Client, Functions, TablesDB } from "node-appwrite";
+import { parseTurnId, DATABASE_ID } from "@backroom/core";
 import { agentTurn } from "./agentTurn.js";
 import { resolver, type Job } from "./resolver.js";
 
@@ -13,7 +14,8 @@ export default async ({ req, res, log, error }: Ctx) => {
   const self = process.env.APPWRITE_FUNCTION_ID!;
   const fns = new Functions(new Client().setEndpoint(endpoint).setProject(project).setKey(key));
   const fire = async (job: Job) => { await fns.createExecution({ functionId: self, body: JSON.stringify(job), async: true }); };
-  const job = req.bodyJson as Job;
+  let job: Job | undefined;
+  try { job = req.bodyJson as Job; } catch { return res.json({ ok: false, error: "body must be JSON" }, 400); }
   try {
     if (job?.op === "turn") {
       const anthropic = new Anthropic({ maxRetries: 1, timeout: 20_000 });
@@ -37,6 +39,13 @@ export default async ({ req, res, log, error }: Ctx) => {
     }
     return res.json({ ok: false, error: "unknown op" }, 400);
   } catch (e) {
+    // A circle swept (or a smoke test cleaned up) while its turns were still queued: nothing to do, not an error.
+    const circleId = job?.op === "turn" ? (() => { try { return parseTurnId(job.turnId).circle; } catch { return undefined; } })() : job?.circleId;
+    if (e instanceof AppwriteException && e.code === 404 && circleId &&
+      await new TablesDB(new Client().setEndpoint(endpoint).setProject(project).setKey(key)).getRow({ databaseId: DATABASE_ID, tableId: "circles", rowId: circleId }).then(() => false, () => true)) {
+      log(JSON.stringify({ op: job?.op, circleId, out: "circle gone, skipped" }));
+      return res.json({ ok: true, out: "gone" });
+    }
     error(JSON.stringify({ op: job?.op, error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) }));
     return res.json({ ok: false }, 500);
   }

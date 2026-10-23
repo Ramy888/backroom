@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppwriteException, Channel, Query } from "appwrite";
-import { call, client, DB, ensureSession, realtime, tables, ApiCallError } from "../aw";
+import { call, client, DB, DEMO_CIRCLE, ensureSession, realtime, tables, ApiCallError } from "../aw";
 import type { Strings } from "../i18n";
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -8,20 +8,27 @@ const kindOf = (phase: number) => (["vote", "night", "day"] as const)[phase % 3]
 const tokenKey = (c: string) => `wolf-token-${c}`;
 const store = { get: (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k: string, v: string) => { try { sessionStorage.setItem(k, v); } catch { /* private mode */ } } };
 
+// Turns an api refusal into the visitor's own-language message (by the api's stable code, then the HTTP status).
+export const errorText = (t: Strings, e: unknown) =>
+  (e instanceof ApiCallError ? t.play.errors[e.code ?? ""] ?? t.play.errors[String(e.status)] : null) ?? t.play.errors.default!;
+const judgeStore = { get: () => { try { return localStorage.getItem("judge-code") ?? ""; } catch { return ""; } }, set: (v: string) => { try { localStorage.setItem("judge-code", v); } catch { /* private mode */ } } };
+
 // #/play: the visitor writes (or picks) their wolf's opening orders, then the game is dealt with them already in place.
 export function Play({ t, lang }: { t: Strings; lang: string }) {
   const [prompt, setPrompt] = useState("");
+  const [judgeCode, setJudgeCode] = useState(judgeStore.get);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   async function deal(withPrompt: string) {
     setBusy(true); setErr(null);
     try {
       await ensureSession();
-      const out = await call<{ circleId: string; wolfToken: string }>("setup", { lang, prompt: withPrompt });
+      judgeStore.set(judgeCode.trim());
+      const out = await call<{ circleId: string; wolfToken: string }>("setup", { lang, prompt: withPrompt, judgeCode: judgeCode.trim() || undefined });
       store.set(tokenKey(out.circleId), out.wolfToken);
       location.replace(`#/c/${out.circleId}`);
     } catch (e) {
-      setErr(t.play.errors[String(e instanceof ApiCallError ? e.status : "default")] ?? t.play.errors.default!);
+      setErr(errorText(t, e));
       setBusy(false);
     }
   }
@@ -34,7 +41,12 @@ export function Play({ t, lang }: { t: Strings; lang: string }) {
       <textarea id="open-prompt" className="field" dir="auto" maxLength={500} rows={3} value={prompt} placeholder={t.play.promptPlaceholder} onChange={(e) => setPrompt(e.target.value)} />
       <button className="btn big full" disabled={busy || !prompt.trim()} onClick={() => void deal(prompt)}>{busy ? t.starting : t.play.deal}</button>
       <button className="btn ghost full" disabled={busy} onClick={() => void deal("")}>{t.play.skip}</button>
-      {err && <div className="err" role="alert">{err} <a href="#/">←</a></div>}
+      {err && <div className="err" role="alert">{err} {DEMO_CIRCLE && <a href={`#/c/${DEMO_CIRCLE}`}>{t.play.demo} →</a>}</div>}
+      <details className="judge" open={!!judgeCode}>
+        <summary>{t.play.judge}</summary>
+        <p className="note">{t.play.judgeHint}</p>
+        <input className="field" aria-label={t.play.judge} value={judgeCode} onChange={(e) => setJudgeCode(e.target.value)} autoComplete="off" spellCheck={false} />
+      </details>
     </section>
   );
 }
@@ -107,7 +119,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
   async function send() {
     setBusy(true); setNote(null);
     try { await call("inject", { circleId, prompt }); setNote(t.play.sent); }
-    catch (e) { setNote(t.play.errors[String(e instanceof ApiCallError ? e.status : "default")] ?? (e as Error).message); }
+    catch (e) { setNote(errorText(t, e)); }
     finally { setBusy(false); }
   }
 
@@ -142,7 +154,8 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
   }
 
   const lastDenial = denials.at(-1);
-  const revealed = circle.status === "revealed";
+  const demo = circleId === DEMO_CIRCLE;
+  const revealed = circle.status === "revealed" && secrets.length > 1; // only when this session actually got the grant
   const roleOf = new Map(secrets.map((r) => [r.seat as number, r.role as string]));
 
   async function share() {
@@ -153,7 +166,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
       setReceipt(url);
       try { if (navigator.share) await navigator.share({ title: "Backroom", url }); else { await navigator.clipboard.writeText(url); setNote(t.play.copied); return; } } catch { /* dismissed */ }
       setNote(null);
-    } catch (e) { setNote(t.play.errors[String(e instanceof ApiCallError ? e.status : "default")] ?? (e as Error).message); }
+    } catch (e) { setNote(errorText(t, e)); }
     finally { setBusy(false); }
   }
   const label = (s: Row) => (s.seat === circle.visitorSeat ? t.play.seatYou : s.name);
@@ -223,6 +236,7 @@ export function Game({ t, circleId }: { t: Strings; circleId: string }) {
       </div>
 
       <div className="side">
+        {demo && <p className="revealed demo-note">{t.play.demoNote}</p>}
         <p className="you-note">{t.play.you} {partner ? t.play.partner(partner) : ""}</p>
         <div className="slip" aria-label="Request slip">
           <div className="req mono"><span className="k">GET</span> …/tables/secrets/rows/{lastDenial ? lastDenial.rowId.replace(circleId, "…") : "…-s?-secret"}<br /><span className="k">X-Appwrite-JWT</span> wolf token (seat {circle.visitorSeat})<br /><span className="k">status</span> {lastDenial ? lastDenial.status : "—"}</div>

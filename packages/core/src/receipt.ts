@@ -4,7 +4,7 @@
 import { agentUserId } from "./ids.js";
 
 // What the Functions' per-execution keys may do (scripts/deploy-functions.mjs); agents never hold a key at all.
-export const FUNCTION_SCOPES = ["users.read", "users.write", "rows.read", "rows.write", "execution.write"] as const;
+export const FUNCTION_SCOPES = ["users.read", "users.write", "rows.read", "rows.write", "execution.read", "execution.write"] as const;
 
 export type ReceiptInput = {
   circleId: string; visitor: string; visitorSeat: number; winner: string | null; phases: number; endedAt: string; lang: "en" | "ar";

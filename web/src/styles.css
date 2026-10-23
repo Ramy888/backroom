@@ -192,3 +192,12 @@ footer { margin-top: 48px; font-size: 13px; color: var(--ink-muted); border-top:
 .receipt .deploy dt { color: var(--ink-muted); } .receipt .deploy dd { margin: 0; overflow-wrap: anywhere; }
 .receipt .note { margin: 16px 0; }
 @media (max-width: 520px) { .receipt .rows th:nth-child(3), .receipt .rows td:nth-child(3) { display: none; } }
+.judge summary { font-size: 13px; font-weight: 600; color: var(--ink-muted); cursor: pointer; padding: 6px 0; }
+.judge .field { margin-top: 6px; font-family: var(--f-mono); font-size: 14px; }
+.demo-note { border: 1.5px solid var(--granted); border-radius: var(--r-sm); }
+/* Operator page */
+.op .switch { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px; border-radius: var(--r-sm); }
+.op .switch.on { background: var(--granted-tint); color: var(--granted); } .op .switch.off { background: var(--denied-tint); color: var(--denied); }
+.op .meter { position: relative; display: flex; justify-content: space-between; padding: 8px 10px; margin: 6px 0; border: 1px solid var(--rule); border-radius: var(--r-sm); font-size: 13px; overflow: hidden; }
+.op .meter i { position: absolute; inset: 0 auto 0 0; background: rgba(27, 36, 112, .08); z-index: 0; } .op .meter i.hot { background: rgba(196, 30, 58, .15); }
+.op .meter span { position: relative; z-index: 1; }

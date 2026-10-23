@@ -1,8 +1,8 @@
 // api Function actions (sync). The caller is the Appwrite user that executed the Function (x-appwrite-user-id);
 // every circle-scoped action checks that caller is the circle's visitor (R4). Caps are database counters with an
 // increment ceiling, keyed to a salted hash of x-appwrite-client-ip (R5), so a fresh anonymous session can't reset them.
-import { createHash, randomInt } from "node:crypto";
-import { Client, TablesDB, Users, Query, ID, AppwriteException } from "node-appwrite";
+import { createHash, randomInt, timingSafeEqual } from "node:crypto";
+import { Client, TablesDB, Users, Functions, Query, ID, AppwriteException } from "node-appwrite";
 import { agentUserId, permsFor, receiptSnapshot, secretId, seatRowId, DATABASE_ID as DB, type CircleView, type Role } from "@backroom/core";
 import { resolver, type Job } from "../../engine/src/resolver.js";
 
@@ -13,11 +13,14 @@ export type ApiDeps = {
   fire: (job: Job) => Promise<void>;
   ipSalt: string;
   judgeCode?: string;
+  operatorCode?: string; // unlocks the operator page (R16); unset means the page is off
+  demoCircleId?: string; // the always-on finished game any visitor may watch and probe (R6)
   deploy?: { deployId: string | null; commit: string | null }; // stamped on every receipt (M5)
   now?: () => number;
   caps?: { perIpHour: number; perDay: number; judgePerDay: number; perMonth: number; promptsPerGame: number };
 };
-export class ApiError extends Error { constructor(readonly status: number, readonly reason: string) { super(reason); } }
+// code is a stable reason the web app turns into its own (translated) message.
+export class ApiError extends Error { constructor(readonly status: number, readonly reason: string, readonly code?: string) { super(reason); } }
 
 const DEFAULT_CAPS = { perIpHour: 5, perDay: 60, judgePerDay: 20, perMonth: 1500, promptsPerGame: 3 };
 const VISITOR_SEAT = 6; // the visitor's wolf sits at six o'clock, nearest the thumb (DESIGN.md)
@@ -27,7 +30,7 @@ const STALE_TURN_MS = 60_000;
 
 export function api(deps: ApiDeps) {
   const client = new Client().setEndpoint(deps.endpoint).setProject(deps.project).setKey(deps.key);
-  const db = new TablesDB(client), users = new Users(client);
+  const db = new TablesDB(client), users = new Users(client), fns = new Functions(client);
   const now = deps.now ?? Date.now;
   const caps = deps.caps ?? DEFAULT_CAPS;
   const engine = resolver({ endpoint: deps.endpoint, project: deps.project, resolverKey: deps.key, fire: deps.fire, now });
@@ -56,6 +59,9 @@ export function api(deps: ApiDeps) {
     return circle;
   }
 
+  const ipHashOf = (ip?: string) => createHash("sha256").update(`${deps.ipSalt}:${ip ?? "unknown"}`).digest("hex").slice(0, 16);
+  const sameSecret = (a: string, b: string) => timingSafeEqual(createHash("sha256").update(a).digest(), createHash("sha256").update(b).digest());
+  const isDemo = (circleId: string) => !!deps.demoCircleId && circleId === deps.demoCircleId;
   const stamp = (ms: number) => new Date(ms).toISOString().replace(/[-:T]/g, "").slice(0, 10); // YYYYMMDDHH
   const wolfToken = async (circleId: string) => (await users.createJWT({ userId: agentUserId(circleId, VISITOR_SEAT), duration: 3600 })).jwt; // the circle lives 60 min (CIRCLE_TTL_MS); the user, and so the token, dies with it
 
@@ -64,13 +70,13 @@ export function api(deps: ApiDeps) {
       if (!input.caller) throw new ApiError(401, "sign in first");
       const prompt = String(input.prompt ?? "").trim(); // the visitor's opening instructions, in place before night 1
       if (prompt.length > 500) throw new ApiError(400, "prompt must be at most 500 characters");
-      if (!(await challengeOpen())) throw new ApiError(503, "the challenge is paused");
-      const ipHash = createHash("sha256").update(`${deps.ipSalt}:${input.ip ?? "unknown"}`).digest("hex").slice(0, 16);
+      if (!(await challengeOpen())) throw new ApiError(503, "the challenge is paused", "paused");
       const t = stamp(now());
-      if (!(await bump(`cap-ip-${ipHash}-${t}`, caps.perIpHour))) throw new ApiError(429, "hourly limit for this network");
-      const judge = !!deps.judgeCode && input.judgeCode === deps.judgeCode;
-      if (!(await bump(judge ? `cap-judge-${t.slice(0, 8)}` : `cap-day-${t.slice(0, 8)}`, judge ? caps.judgePerDay : caps.perDay))) throw new ApiError(429, "daily limit reached");
-      if (!(await bump(`cap-month-${t.slice(0, 6)}`, caps.perMonth))) throw new ApiError(429, "monthly limit reached");
+      // A judge plays from the reserve and skips the per-network cap (judges often share one office network).
+      const judge = !!deps.judgeCode && !!input.judgeCode && sameSecret(input.judgeCode, deps.judgeCode);
+      if (!judge && !(await bump(`cap-ip-${ipHashOf(input.ip)}-${t}`, caps.perIpHour))) throw new ApiError(429, "hourly limit for this network", "hour");
+      if (!(await bump(judge ? `cap-judge-${t.slice(0, 8)}` : `cap-day-${t.slice(0, 8)}`, judge ? caps.judgePerDay : caps.perDay))) throw new ApiError(429, "daily limit reached", "day");
+      if (!(await bump(`cap-month-${t.slice(0, 6)}`, caps.perMonth))) throw new ApiError(429, "monthly limit reached", "month");
 
       const circleId = ID.unique();
       // Seat 6 is the visitor's wolf; seats 1-5 get one wolf, one seer and three villagers in random order.
@@ -105,7 +111,8 @@ export function api(deps: ApiDeps) {
     },
 
     async token(input: { caller?: string; circleId: string }) {
-      await ownCircle(input.caller, input.circleId);
+      if (isDemo(input.circleId)) { if (!input.caller) throw new ApiError(401, "sign in first"); } // the demo's wolf is everyone's to probe
+      else await ownCircle(input.caller, input.circleId);
       return { wolfToken: await wolfToken(input.circleId) };
     },
 
@@ -129,6 +136,10 @@ export function api(deps: ApiDeps) {
     // X3: publish one public snapshot of a finished circle. secrets permissions never change for this; the snapshot
     // names seats, not users (M11), and survives the circle's sweep.
     async share(input: { caller?: string; circleId: string }) {
+      if (isDemo(input.circleId)) {
+        const demo = await db.getRow({ databaseId: DB, tableId: "circles", rowId: input.circleId });
+        if (demo.receiptId) return { receiptId: demo.receiptId as string };
+      }
       const circle = await ownCircle(input.caller, input.circleId);
       if (circle.kind !== "werewolf") throw new ApiError(400, "only Werewolf games have receipts");
       if (circle.status === "active") throw new ApiError(409, "the game has not ended");
@@ -147,6 +158,32 @@ export function api(deps: ApiDeps) {
         data: { snapshot: JSON.stringify(snapshot), deployId: deps.deploy?.deployId ?? null, commit: deps.deploy?.commit ?? null } });
       await db.updateRow({ databaseId: DB, tableId: "circles", rowId: input.circleId, data: { receiptId: row.$id } });
       return { receiptId: row.$id };
+    },
+
+    // R16: the operator page. The code is checked here, never in the browser, and guesses are capped per network.
+    async op(input: { ip?: string; code: string; action: "status" | "open" | "close" }) {
+      if (!deps.operatorCode) throw new ApiError(404, "operator page is off");
+      if (!(await bump(`cap-op-${ipHashOf(input.ip)}-${stamp(now())}`, 10))) throw new ApiError(429, "too many tries, wait an hour");
+      if (!sameSecret(String(input.code ?? ""), deps.operatorCode)) throw new ApiError(403, "wrong operator code");
+      if (input.action === "open" || input.action === "close") {
+        const data = { flag: input.action === "open" };
+        await db.updateRow({ databaseId: DB, tableId: "meta", rowId: "config", data })
+          .catch(() => db.createRow({ databaseId: DB, tableId: "meta", rowId: "config", data, permissions: [] }));
+      }
+      const t = stamp(now());
+      const count = (rowId: string) => db.getRow({ databaseId: DB, tableId: "meta", rowId }).then((r) => r.n as number, () => 0);
+      const [day, judge, month] = await Promise.all([count(`cap-day-${t.slice(0, 8)}`), count(`cap-judge-${t.slice(0, 8)}`), count(`cap-month-${t.slice(0, 6)}`)]);
+      const recent = await db.listRows({ databaseId: DB, tableId: "circles", queries: [Query.orderDesc("$createdAt"), Query.limit(10)] });
+      const active = await db.listRows({ databaseId: DB, tableId: "circles", queries: [Query.equal("status", "active"), Query.limit(1)] });
+      const failed = async (functionId: string) => (await fns.listExecutions({ functionId, queries: [Query.equal("status", "failed"), Query.orderDesc("$createdAt"), Query.limit(5)] })
+        .catch(() => ({ executions: [] }))).executions.map((e) => ({ fn: functionId, at: e.$createdAt, code: e.responseStatusCode, error: String(e.errors ?? "").slice(0, 300) }));
+      return {
+        challengeOpen: await challengeOpen(),
+        counters: { day: { n: day, of: caps.perDay }, judge: { n: judge, of: caps.judgePerDay }, month: { n: month, of: caps.perMonth } },
+        circles: { active: active.total, recent: recent.rows.map((c) => ({ id: c.$id, status: c.status, phase: c.phase, executions: c.executions, winner: c.winner ?? null, at: c.$createdAt })) },
+        errors: [...(await failed("engine")), ...(await failed("api"))].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8),
+        deploy: deps.deploy ?? null, demoCircleId: deps.demoCircleId ?? null,
+      };
     },
 
     // Hourly cron: delete expired circles, their rows and their agent users (O1: leftover JWTs die with the users).

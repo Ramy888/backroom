@@ -84,7 +84,7 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 - [x] 12. (verified live at 390/1280, EN+AR, no overflow) Circle board (phase strip, seats, transcript via filtered Realtime, templates X2, prompt input)
 - [x] 13. (verified live: network log 404×5 + own 200, stamps pile) Denial moment (the direct JWT read button M3, stamp, why chip X1, scoreboard, live region)
 - [x] 14. (test project ✅: `tests/receipts.int.test.ts` 3/3, the receipt opens with no session and survives the sweep; prod deploy pending) Reveal and receipt (reveal grant, `receipts` snapshot M11 with deploy ID M5, `/r/<id>`, share X3)
-- [ ] 15. Caps UI, kill switch, operator page, judge code, always-on demo circle
+- [x] 15. (test project ✅: kill switch blocks setup 146 ms after it is thrown; judge code plays past the daily cap (ops suite); demo game probes live; prod deploy pending) Caps UI, kill switch, operator page, judge code, always-on demo circle
 
 ### Checkpoint 2 (day-2 gate)
 - [ ] A stranger completes the wolf challenge on the live URL (phone)
