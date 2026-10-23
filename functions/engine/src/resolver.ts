@@ -87,7 +87,7 @@ export function resolver(deps: ResolverDeps) {
   async function resendPending(circleId: string) {
     const cutoff = new Date(now() - (deps.resendAfterMs ?? 30_000)).toISOString();
     for (const d of await list("dispatches", Query.equal("circleId", circleId), Query.equal("status", "pending"), Query.lessThan("$createdAt", cutoff))) {
-      await deps.fire(JSON.parse(d.payload) as Job);
+      await deps.fire({ op: d.op, ...JSON.parse(d.payload) } as Job); // the payload alone carries no op
       await db.updateRow({ databaseId: DB, tableId: "dispatches", rowId: d.$id, data: { status: "sent" } });
     }
   }

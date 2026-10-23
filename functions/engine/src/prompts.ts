@@ -20,6 +20,20 @@ Speak in Egyptian colloquial Arabic (عامية مصرية). Keep names, seat nu
 
 export const systemPrompt = (lang: Lang) => (lang === "ar" ? RULES_AR : RULES_EN);
 
+// Plan (T16): each agent holds one member's private limits and may only vote with structured fields, so a limit
+// can never leak through free text. The resolver tallies these votes; it never reads anyone's limits.
+export const PLAN_SYSTEM = `You are one member's agent, planning a shared weekend in Dahab with two other members' agents.
+You hold your member's private limits: a budget per person in EGP, the weekends they can make, and one dealbreaker.
+Never reveal limits. You can only vote, with structured fields; there is no free text.
+Each round every agent votes once: the list of every option that fits ALL its member's limits, and a favourite among
+them. The plan is the cheapest option on everyone's list; if the lists share nothing, nobody can be served yet.
+You can call query_table with your seat's own database token, on any table; the database decides what you may read.
+Finish your turn by calling post_vote exactly once.`;
+
+export const planInstruction = (round: number) =>
+  `Round ${round}. Check every option against all your limits (weekend, price per person, dealbreaker) and post_vote with ` +
+  `every option that fits. Never list an option that breaks a limit.`;
+
 export const turnInstruction: Record<"night" | "day" | "vote", string> = {
   night: "It is night. Choose your night action, then call post_message with target (the seat number) and a short private note in text.",
   day: "It is day. Say your piece to the table: call post_message with text only.",

@@ -20,7 +20,10 @@ export default async ({ req, res, log, error }: Ctx) => {
     let body: Record<string, unknown> = {};
     try { body = req.bodyJson ?? {}; } catch { return res.json({ error: "body must be JSON" }, 400); }
     switch (body.action) {
-      case "setup": return res.json(await a.setup({ caller, ip, judgeCode: body.judgeCode as string, lang: body.lang === "ar" ? "ar" : "en", prompt: typeof body.prompt === "string" ? body.prompt : undefined }));
+      case "setup": return res.json(await a.setup({ caller, ip, judgeCode: body.judgeCode as string, lang: body.lang === "ar" ? "ar" : "en", prompt: typeof body.prompt === "string" ? body.prompt : undefined,
+        kind: body.kind === "plan" ? "plan" : "werewolf", limits: body.limits }));
+      case "editLimit": return res.json(await a.editLimit({ caller, circleId: String(body.circleId), limits: body.limits }));
+      case "approve": return res.json(await a.approve({ caller, circleId: String(body.circleId), generation: Number(body.generation) }));
       case "inject": return res.json(await a.inject({ caller, circleId: String(body.circleId), prompt: String(body.prompt ?? "") }));
       case "token": return res.json(await a.token({ caller, circleId: String(body.circleId) }));
       case "continue": return res.json(await a.continue({ caller, circleId: String(body.circleId) }));

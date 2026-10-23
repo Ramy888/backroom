@@ -35,7 +35,8 @@ function harness(opts: { dropResolveOnce?: string } = {}) {
       const job = queue.shift()!;
       if (job.op === "turn") await agentTurn(agentDeps(job.turnId), job.turnId).catch((e) => { if (!/simulated crash/.test(String(e))) throw e; });
       else if (job.op === "start") await r.start(job.circleId);
-      else await r.resolve(job.circleId, job.phase);
+      else if (job.op === "resolve") await r.resolve(job.circleId, job.phase);
+      else throw new Error(`job without a known op: ${JSON.stringify(job)}`); // the engine rejects these in production too
     }
   }
   return { r, queue, drain };

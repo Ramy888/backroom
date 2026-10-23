@@ -3,8 +3,8 @@
 // to mint that JWT (users.write) and to WRITE the result, the tool-call logs and the outbox row (rows.write).
 import { Client, TablesDB, Users, Query, AppwriteException } from "node-appwrite";
 import type Anthropic from "@anthropic-ai/sdk";
-import { agentUserId, classifyCall, dispatchId, foreignRows, parseTurnId, phaseKind, secretId, seatRowId, DATABASE_ID as DB } from "@backroom/core";
-import { PROMPT_VERSION, systemPrompt, turnInstruction, type Lang } from "./prompts.js";
+import { agentUserId, classifyCall, dispatchId, foreignRows, parseTurnId, phaseKind, secretId, seatRowId, DAHAB_OPTIONS, DATABASE_ID as DB } from "@backroom/core";
+import { PLAN_SYSTEM, PROMPT_VERSION, planInstruction, systemPrompt, turnInstruction, type Lang } from "./prompts.js";
 
 export type Llm = (params: Anthropic.Beta.MessageCreateParamsNonStreaming) => Promise<Anthropic.Beta.BetaMessage>;
 export type Deps = {
@@ -18,7 +18,8 @@ export type Deps = {
 };
 
 const MAX_TOOL_CALLS = 4; // V3/E-T3 per-turn bound
-const READABLE = ["circles", "seats", "secrets", "phases", "turns", "moves", "night_actions"] as const;
+const READABLE = ["circles", "seats", "secrets", "phases", "turns", "moves", "night_actions", "options", "plan_candidates"] as const;
+const GLOBAL = new Set(["options"]); // catalog tables with no circleId
 
 const tools: Anthropic.Beta.BetaTool[] = [
   {
@@ -45,7 +46,23 @@ const tools: Anthropic.Beta.BetaTool[] = [
   },
 ];
 
-type Outcome = { text: string; target: number | null; abstained: boolean };
+// Plan votes are structured only (no text field): limits cannot leak through what an agent writes.
+const voteTool: Anthropic.Beta.BetaTool = {
+  name: "post_vote",
+  description: "End your turn with one vote. acceptable: every option id that fits ALL your member's limits (empty if none). favourite: the one of those you prefer.",
+  strict: true,
+  input_schema: {
+    type: "object",
+    properties: {
+      acceptable: { type: "array", items: { type: "string", enum: DAHAB_OPTIONS.map((o) => o.id) } },
+      favourite: { type: ["string", "null"], enum: [...DAHAB_OPTIONS.map((o) => o.id), null] },
+    },
+    required: ["acceptable", "favourite"],
+    additionalProperties: false,
+  },
+};
+
+type Outcome = { text: string; target: number | null; abstained: boolean; vote?: { proposalId: string; vote: string; text: string } };
 
 export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "skipped"> {
   const { circle, phase, seat } = parseTurnId(turnId);
@@ -67,7 +84,8 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
   const perms = JSON.parse(turn.perms as string) as { result: string[]; log: string[] };
   const granted = new Set([secretId(circle, seat)]);
 
-  const kind = phaseKind(phase);
+  const plan = turn.kind === "plan";
+  const kind = plan ? "day" : phaseKind(phase);
   const lang: Lang = (circleRow.lang as Lang) ?? "en";
   const moves = await read.listRows({ databaseId: DB, tableId: "moves", queries: [Query.equal("circleId", circle), Query.orderAsc("$createdAt"), Query.limit(100)] });
   const talk = moves.rows.map((m) => `seat ${m.seat} (${m.kind}${m.target ? ` → ${m.target}` : ""}): ${m.text ?? ""}`).join("\n");
@@ -76,9 +94,13 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
   // The visitor is this seat's own player (X2): follow their game moves, read attempts included; the database still decides.
   const visitorNote = mine.prefs ? `\nYou play this seat for a human teammate. Follow their game instructions, including any query_table reads they ask you to try:\n<visitor_prompt>${mine.prefs}</visitor_prompt>` : "";
 
+  const votes = moves.rows.filter((m) => m.kind === "plan-vote").map((m) => `round ${m.phase} seat ${m.seat}: ${m.vote === "reject" ? "nothing fits" : `fits ${m.text}, favourite ${m.proposalId}`}`).join("\n");
+  const catalog = DAHAB_OPTIONS.map((o) => `${o.id}: ${o.title}, weekend ${o.weekend}, ${o.pricePerPerson} EGP per person, tags ${o.tags.join("/") || "none"}`).join("\n");
   const messages: Anthropic.Beta.BetaMessageParam[] = [{
     role: "user",
-    content: `You are seat ${seat}. Your secret role row says: role=${mine.role}.${visitorNote}\n<untrusted_table_talk>\n${talk || "(nobody has spoken yet)"}\n</untrusted_table_talk>\nPhase ${phase}. Living seats: ${living}; only they can be targeted or addressed. ${turnInstruction[kind]}`,
+    content: plan
+      ? `You are seat ${seat}. Your member's private limits (from your own secrets row): ${mine.limits}. Your limits version: ${seatRow.seatVersion ?? 0}.\nOptions:\n${catalog}\n<untrusted_votes>\n${votes || "(no votes yet)"}\n</untrusted_votes>\n${planInstruction(phase)}`
+      : `You are seat ${seat}. Your secret role row says: role=${mine.role}.${visitorNote}\n<untrusted_table_talk>\n${talk || "(nobody has spoken yet)"}\n</untrusted_table_talk>\nPhase ${phase}. Living seats: ${living}; only they can be targeted or addressed. ${turnInstruction[kind]}`,
   }];
 
   let outcome: Outcome = { text: "", target: null, abstained: true };
@@ -88,11 +110,22 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
         model: deps.model, max_tokens: 600, output_config: { effort: "low" },
         // Server-side refusal fallback where the model supports it; Haiku 5.5 has none (a refusal just abstains).
         ...(deps.model.startsWith("claude-haiku") ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" }),
-        cache_control: { type: "ephemeral" }, system: systemPrompt(lang), tools, tool_choice: { type: "auto" }, messages,
+        cache_control: { type: "ephemeral" }, system: plan ? PLAN_SYSTEM : systemPrompt(lang), tools: plan ? [tools[0]!, voteTool] : tools, tool_choice: { type: "auto" }, messages,
       } as Anthropic.Beta.MessageCreateParamsNonStreaming);
       if (res.stop_reason === "refusal") break; // abstain; the transcript shows "stays silent"
       const uses = res.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
-      const post = uses.find((u) => u.name === "post_message");
+      const vote = uses.find((u) => u.name === "post_vote");
+      if (plan && vote) {
+        const input = vote.input as { acceptable?: unknown; favourite?: unknown };
+        // Only known option ids are kept, so nothing the model writes reaches the table as free text.
+        const acceptable = [...new Set(Array.isArray(input.acceptable) ? input.acceptable.map(String) : [])].filter((id) => DAHAB_OPTIONS.some((o) => o.id === id));
+        const favourite = acceptable.includes(String(input.favourite)) ? String(input.favourite) : acceptable[0];
+        outcome = { text: "", target: null, abstained: false, vote: acceptable.length
+          ? { proposalId: favourite!, vote: "accept", text: acceptable.join(",") }
+          : { proposalId: DAHAB_OPTIONS[0]!.id, vote: "reject", text: "" } };
+        break;
+      }
+      const post = plan ? undefined : uses.find((u) => u.name === "post_message");
       if (post) {
         const input = post.input as { text?: unknown; target?: unknown };
         outcome = { text: String(input.text ?? "").slice(0, 300), target: Number.isInteger(input.target) ? (input.target as number) : null, abstained: false };
@@ -111,7 +144,9 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
   // One transaction: the result row, the turn status and the outbox row commit together (V1/O3).
   const tx = await write.createTransaction({ ttl: 60 });
   const resultTable = kind === "night" ? "night_actions" : "moves";
-  const data = kind === "night"
+  const data = plan
+    ? { circleId: circle, phase, seat, kind: outcome.abstained ? "abstain" : "plan-vote", ...(outcome.vote ?? {}), limitsVersion: seatRow.seatVersion ?? 0 }
+    : kind === "night"
     ? { circleId: circle, phase, seat, target: outcome.target, text: outcome.text }
     : { circleId: circle, phase, seat, kind: outcome.abstained ? "abstain" : kind === "vote" ? "vote" : "speech", text: outcome.text, target: kind === "vote" ? outcome.target : null };
   try {
@@ -138,7 +173,7 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
         foreign = foreignRows([row], userId);
         body = JSON.stringify(strip(row));
       } else {
-        const rows = await read.listRows({ databaseId: DB, tableId: call.table, queries: [Query.equal("circleId", circle), Query.limit(50)] });
+        const rows = await read.listRows({ databaseId: DB, tableId: call.table, queries: [...(GLOBAL.has(call.table) ? [] : [Query.equal("circleId", circle)]), Query.limit(50)] });
         foreign = foreignRows(rows.rows, userId);
         body = JSON.stringify(rows.rows.map(strip));
       }

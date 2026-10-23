@@ -3,8 +3,9 @@
 // increment ceiling, keyed to a salted hash of x-appwrite-client-ip (R5), so a fresh anonymous session can't reset them.
 import { createHash, randomInt, timingSafeEqual } from "node:crypto";
 import { Client, TablesDB, Users, Functions, Query, ID, AppwriteException } from "node-appwrite";
-import { agentUserId, permsFor, receiptSnapshot, secretId, seatRowId, DATABASE_ID as DB, type CircleView, type Role } from "@backroom/core";
+import { AI_MEMBER_LIMITS, DEFAULT_HUMAN_LIMITS, PLAN_SEATS, agentUserId, approvalsComplete, parseLimits, permsFor, receiptSnapshot, secretId, seatRowId, DATABASE_ID as DB, type CircleView, type Role } from "@backroom/core";
 import { resolver, type Job } from "../../engine/src/resolver.js";
+import { planResolver } from "../../engine/src/planResolver.js";
 
 export type ApiDeps = {
   endpoint: string;
@@ -15,6 +16,7 @@ export type ApiDeps = {
   judgeCode?: string;
   operatorCode?: string; // unlocks the operator page (R16); unset means the page is off
   demoCircleId?: string; // the always-on finished game any visitor may watch and probe (R6)
+  planTtlSeconds?: number; // the Plan approval window (300 s in production)
   deploy?: { deployId: string | null; commit: string | null }; // stamped on every receipt (M5)
   now?: () => number;
   caps?: { perIpHour: number; perDay: number; judgePerDay: number; perMonth: number; promptsPerGame: number };
@@ -34,6 +36,12 @@ export function api(deps: ApiDeps) {
   const now = deps.now ?? Date.now;
   const caps = deps.caps ?? DEFAULT_CAPS;
   const engine = resolver({ endpoint: deps.endpoint, project: deps.project, resolverKey: deps.key, fire: deps.fire, now });
+  const planEngine = planResolver({ endpoint: deps.endpoint, project: deps.project, key: deps.key, fire: deps.fire, now, ttlSeconds: deps.planTtlSeconds });
+  const planCircle = async (caller: string | undefined, circleId: string) => {
+    const circle = await ownCircle(caller, circleId);
+    if (circle.kind !== "plan") throw new ApiError(400, "not a Plan circle");
+    return circle;
+  };
 
   // A counter row in meta: true while under the ceiling. The ceiling is enforced by the database (increment max).
   async function bump(rowId: string, max: number): Promise<boolean> {
@@ -65,8 +73,30 @@ export function api(deps: ApiDeps) {
   const stamp = (ms: number) => new Date(ms).toISOString().replace(/[-:T]/g, "").slice(0, 10); // YYYYMMDDHH
   const wolfToken = async (circleId: string) => (await users.createJWT({ userId: agentUserId(circleId, VISITOR_SEAT), duration: 3600 })).jwt; // the circle lives 60 min (CIRCLE_TTL_MS); the user, and so the token, dies with it
 
+  // Plan (M1): the visitor is seat 1 with their own agent (which reads their limits through its JWT); seats 2-3 are
+  // AI members with seeded private limits. No turn reads another member's limits; the resolver never reads limits.
+  async function setupPlan(caller: string, lang: "en" | "ar", rawLimits: unknown) {
+    let human;
+    try { human = rawLimits == null ? DEFAULT_HUMAN_LIMITS : parseLimits(rawLimits); } catch (e) { throw new ApiError(400, (e as Error).message, "limits"); }
+    const circleId = ID.unique();
+    const view: CircleView = { visitor: caller, seats: PLAN_SEATS.map((s) => ({ seat: s.seat, user: agentUserId(circleId, s.seat), role: "villager" as Role, visitor: s.seat === 1 })) };
+    await Promise.all(view.seats.map((s) => users.create({ userId: s.user, name: `${circleId} member ${s.seat}` })));
+    const pub = permsFor("public", view);
+    await db.createRow({ databaseId: DB, tableId: "circles", rowId: circleId, permissions: pub, data: {
+      kind: "plan", status: "active", phase: 0, visitor: caller, visitorSeat: 1, lang, generation: 0, planState: "negotiating", replans: 0,
+      expiresAt: new Date(now() + CIRCLE_TTL_MS).toISOString() } });
+    await Promise.all(PLAN_SEATS.flatMap((s) => [
+      db.createRow({ databaseId: DB, tableId: "seats", rowId: seatRowId(circleId, s.seat), permissions: pub,
+        data: { circleId, seat: s.seat, name: s.name, agentUserId: agentUserId(circleId, s.seat), controller: "ai", seatVersion: 0 } }),
+      db.createRow({ databaseId: DB, tableId: "secrets", rowId: secretId(circleId, s.seat), permissions: permsFor("secret", view, s.seat),
+        data: { circleId, seat: s.seat, role: "member", limits: JSON.stringify(s.seat === 1 ? human : AI_MEMBER_LIMITS[s.seat as 2 | 3]) } }),
+    ]));
+    await deps.fire({ op: "start", circleId });
+    return { circleId, seat: 1 };
+  }
+
   return {
-    async setup(input: { caller?: string; ip?: string; judgeCode?: string; lang?: "en" | "ar"; prompt?: string }) {
+    async setup(input: { caller?: string; ip?: string; judgeCode?: string; lang?: "en" | "ar"; prompt?: string; kind?: "werewolf" | "plan"; limits?: unknown }) {
       if (!input.caller) throw new ApiError(401, "sign in first");
       const prompt = String(input.prompt ?? "").trim(); // the visitor's opening instructions, in place before night 1
       if (prompt.length > 500) throw new ApiError(400, "prompt must be at most 500 characters");
@@ -77,6 +107,7 @@ export function api(deps: ApiDeps) {
       if (!judge && !(await bump(`cap-ip-${ipHashOf(input.ip)}-${t}`, caps.perIpHour))) throw new ApiError(429, "hourly limit for this network", "hour");
       if (!(await bump(judge ? `cap-judge-${t.slice(0, 8)}` : `cap-day-${t.slice(0, 8)}`, judge ? caps.judgePerDay : caps.perDay))) throw new ApiError(429, "daily limit reached", "day");
       if (!(await bump(`cap-month-${t.slice(0, 6)}`, caps.perMonth))) throw new ApiError(429, "monthly limit reached", "month");
+      if (input.kind === "plan") return setupPlan(input.caller, input.lang ?? "en", input.limits);
 
       const circleId = ID.unique();
       // Seat 6 is the visitor's wolf; seats 1-5 get one wolf, one seer and three villagers in random order.
@@ -99,6 +130,43 @@ export function api(deps: ApiDeps) {
       // Night 1 opens in the async engine, so this synchronous call stays far under Appwrite's 30 s limit.
       await deps.fire({ op: "start", circleId });
       return { circleId, seat: VISITOR_SEAT, wolfToken: await wolfToken(circleId) };
+    },
+
+    // O4: every limit change is one transaction: the private value in secrets, and +1 on the public seatVersion,
+    // which is all the other members learn. If a plan is staged, this moves its seats row and its commit will conflict.
+    async editLimit(input: { caller?: string; circleId: string; limits: unknown }) {
+      const circle = await planCircle(input.caller, input.circleId);
+      if (circle.status !== "active") throw new ApiError(409, "this plan is closed");
+      let limits;
+      try { limits = parseLimits(input.limits); } catch (e) { throw new ApiError(400, (e as Error).message, "limits"); }
+      const seat = circle.visitorSeat as number;
+      const tx = await db.createTransaction({ ttl: 60 });
+      try {
+        await db.updateRow({ databaseId: DB, tableId: "secrets", rowId: secretId(input.circleId, seat), transactionId: tx.$id, data: { limits: JSON.stringify(limits) } });
+        await db.incrementRowColumn({ databaseId: DB, tableId: "seats", rowId: seatRowId(input.circleId, seat), column: "seatVersion", value: 1, transactionId: tx.$id });
+        await db.updateTransaction({ transactionId: tx.$id, commit: true });
+      } catch (e) {
+        await db.updateTransaction({ transactionId: tx.$id, rollback: true }).catch(() => {});
+        throw e;
+      }
+      return { seatVersion: (await db.getRow({ databaseId: DB, tableId: "seats", rowId: seatRowId(input.circleId, seat) })).seatVersion as number };
+    },
+
+    // O5: the human approves one generation of one candidate. The approval id is deterministic, so it counts once.
+    async approve(input: { caller?: string; circleId: string; generation: number }) {
+      const circle = await planCircle(input.caller, input.circleId);
+      const generation = Number(input.generation);
+      if (circle.planState !== "awaiting" || circle.generation !== generation) throw new ApiError(409, "nothing to approve for this generation", "stale");
+      const seat = circle.visitorSeat as number;
+      await db.createRow({ databaseId: DB, tableId: "approvals", rowId: `${input.circleId}-g${generation}-s${seat}`, permissions: (await db.getRow({ databaseId: DB, tableId: "plan_candidates", rowId: `${input.circleId}-g${generation}` })).$permissions,
+        data: { circleId: input.circleId, generation, seat } }).catch((e) => { if (!(e instanceof AppwriteException && e.code === 409)) throw e; });
+      const approvals = (await db.listRows({ databaseId: DB, tableId: "approvals", queries: [Query.equal("circleId", input.circleId), Query.equal("generation", generation)] })).rows;
+      if (!approvalsComplete(approvals.map((a) => ({ seat: a.seat, generation: a.generation })), generation, [seat])) return { state: "waiting" };
+      const out = await planEngine.commit(input.circleId, generation);
+      if (out === "restaged") throw new ApiError(410, "the approval window closed; the plan was re-staged, approve it again", "restaged");
+      if (out === "expired") throw new ApiError(410, "the approval window closed again; this plan expired", "expired");
+      if (out === "stale") throw new ApiError(409, "nothing to approve for this generation", "stale");
+      return { state: out }; // committed | conflict | stalled
     },
 
     async inject(input: { caller?: string; circleId: string; prompt: string }) {
@@ -129,6 +197,7 @@ export function api(deps: ApiDeps) {
           data: night ? { circleId: input.circleId, phase: t.phase, seat: t.seat } : { circleId: input.circleId, phase: t.phase, seat: t.seat, kind: "abstain" } }).catch(() => {});
         await db.updateRow({ databaseId: DB, tableId: "turns", rowId: t.$id, data: { status: "abstained" } });
       }
+      if (circle.kind === "plan") return { abstained: stuck.length, state: await planEngine.resolve(input.circleId, circle.phase) };
       await engine.resendPending(input.circleId);
       return { abstained: stuck.length, state: await engine.resolve(input.circleId, circle.phase) };
     },
@@ -190,7 +259,8 @@ export function api(deps: ApiDeps) {
     async sweep() {
       const expired = (await db.listRows({ databaseId: DB, tableId: "circles", queries: [Query.lessThan("expiresAt", new Date(now()).toISOString()), Query.limit(25)] })).rows;
       for (const c of expired) {
-        for (const t of ["turn_logs", "dispatches", "moves", "night_actions", "turns", "phases", "secrets", "seats"]) {
+        await db.deleteRow({ databaseId: DB, tableId: "meta", rowId: `${c.$id}-restaged` }).catch(() => {});
+        for (const t of ["turn_logs", "dispatches", "moves", "night_actions", "turns", "phases", "approvals", "plan_candidates", "secrets", "seats"]) {
           for (;;) {
             const { rows } = await db.listRows({ databaseId: DB, tableId: t, queries: [Query.equal("circleId", c.$id), Query.limit(100)] });
             if (!rows.length) break;

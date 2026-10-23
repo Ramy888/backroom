@@ -36,6 +36,11 @@ export const TABLES: TableDef[] = [
       { key: "executions", type: "integer", default: 0, min: 0, max: 60 }, // V3: Operator.increment(1, 60)
       { key: "deployId", type: "varchar", size: 40 },
       { key: "receiptId", type: "varchar", size: 36 }, // the one shared receipt for this circle (X3), additive after the freeze
+      // Plan (T16, additive): the live generation, where the plan stands, the staged commit transaction, re-plans used.
+      { key: "generation", type: "integer", default: 0, min: 0, max: 99 },
+      { key: "planState", type: "enum", elements: ["negotiating", "awaiting", "committed", "stalled", "expired"] },
+      { key: "txId", type: "varchar", size: 64 },
+      { key: "replans", type: "integer", default: 0, min: 0, max: 9 },
     ],
     indexes: [{ key: "by_expiry", type: "key", attributes: ["expiresAt"] }, { key: "by_visitor", type: "key", attributes: ["visitor"] }],
   },

@@ -5,3 +5,4 @@ export * from "./classify.js";
 export * from "./plan.js";
 export * from "./schema.js";
 export * from "./receipt.js";
+export * from "./dahab.js";
