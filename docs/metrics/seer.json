@@ -1,0 +1,143 @@
+{
+ "summary": {
+  "recordedAt": "2026-10-23T17:12:34.055Z",
+  "model": "claude-haiku-5-5",
+  "games": 10,
+  "failed": 0,
+  "winners": {
+   "wolves": 8,
+   "village": 2
+  },
+  "seerChecks": 13,
+  "wolfHits": 4,
+  "expectedByChance": 5.17,
+  "verdict": "too few checks to say"
+ },
+ "games": [
+  {
+   "winner": "wolves",
+   "phases": 4,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 6,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": true,
+     "chance": 0.4
+    },
+    {
+     "phase": 4,
+     "hit": false,
+     "chance": 0.3333333333333333
+    }
+   ]
+  },
+  {
+   "winner": "village",
+   "phases": 6,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    },
+    {
+     "phase": 4,
+     "hit": true,
+     "chance": 0.3333333333333333
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 3,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 3,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 3,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 3,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": true,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "village",
+   "phases": 12,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 3,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    }
+   ]
+  },
+  {
+   "winner": "wolves",
+   "phases": 4,
+   "checks": [
+    {
+     "phase": 1,
+     "hit": false,
+     "chance": 0.4
+    },
+    {
+     "phase": 4,
+     "hit": true,
+     "chance": 0.5
+    }
+   ]
+  }
+ ]
+}

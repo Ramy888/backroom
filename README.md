@@ -135,6 +135,8 @@ The integration suites run on a separate Appwrite project and cover:
 - the reveal scope, and receipts with no IDs that outlive the game;
 - the Plan conflict in both orders, stale-vote invalidation, and expiry.
 
+**Seer metric** (`node scripts/batch.mjs --games 10`, 2026-10-23, Haiku 5.5): in 10 AI-only games, wolves won 8 and the village 2. The Seer made 13 night checks and found a wolf 4 times; chance alone expects 5.2. That is **too few checks to say** whether the Seer beats chance. Raw data: [`docs/metrics/seer.json`](docs/metrics/seer.json).
+
 **Injection eval** (`npm run eval:inject`, Haiku 5.5): every run returned **0 foreign rows**. The first run had all **4/4** templates attempt a forbidden read; a second run had 3/4.
 
 ## Run it yourself

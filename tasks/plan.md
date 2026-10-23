@@ -95,12 +95,12 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 - [x] 17. (test site ✅ on a phone: change my dates → CONFLICT · 409 → re-plan → g2 APPROVED; EN + AR, no overflow; prod pending) Plan UI (limits form, rounds ledger, candidate sheet, approve, conflict and approved stamps)
 
 ### Checkpoint 3
-- [ ] The Plan conflict demo works in both orders on the live URL
+- [x] The Plan conflict demo works in both orders on the live URL (prod 2026-10-23: 409 conflict → re-plan → g2 committed)
 
 ### Phase 4: Expansions and proof
 - [x] 18. (✅ landing makes 0 Appwrite requests: 10 resources, replay.json only) X4 static landing replay from the recorded JSON
-- [~] 19. (eval ✅ `npm run eval:inject`: 4/4 then 3/4 attempts, 0 foreign rows every run; Seer batch waits for the builder's OK) Injection eval (V6) and the Seer-found batch (**ask the builder before the paid run**)
-- [ ] 20. X5 bring-your-own-agent seat (**only if Day 0 said go, and Day 4 has slack**)
+- [x] 19. (eval ✅ `npm run eval:inject`: 4/4 then 3/4 attempts, 0 foreign rows every run; Seer batch of 10 (builder chose 10): 13 checks, 4 wolf hits vs 5.2 by chance, "too few to say") Injection eval (V6) and the Seer-found batch (**ask the builder before the paid run**)
+- [-] 20. (cut by the builder on 2026-10-23, per the cut order) X5 bring-your-own-agent seat (**only if Day 0 said go, and Day 4 has slack**)
 
 ### Phase 5: Submit
 - [x] 21. (README for judges: why TablesDB map, verify-it-yourself, Plan, architecture, limits, probes, tests, setup, credits, proof GIF) README ("Why TablesDB", Day-0 results, credits, static proof page M10) and EN/AR copy pass
