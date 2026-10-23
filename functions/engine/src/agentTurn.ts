@@ -55,7 +55,7 @@ const voteTool: Anthropic.Beta.BetaTool = {
     type: "object",
     properties: {
       acceptable: { type: "array", items: { type: "string", enum: DAHAB_OPTIONS.map((o) => o.id) } },
-      favourite: { type: ["string", "null"], enum: [...DAHAB_OPTIONS.map((o) => o.id), null] },
+      favourite: { type: "string", enum: DAHAB_OPTIONS.map((o) => o.id) }, // strict tools reject an enum under ["string","null"]
     },
     required: ["acceptable", "favourite"],
     additionalProperties: false,
@@ -138,7 +138,8 @@ export async function agentTurn(deps: Deps, turnId: string): Promise<"done" | "s
       messages.push({ role: "user", content: results });
     }
   } catch (e) {
-    deps.log?.(`turn ${turnId}: model error ${e instanceof Error ? e.name : "unknown"}; abstaining`);
+    const status = (e as { status?: number }).status;
+    deps.log?.(`turn ${turnId}: model error ${e instanceof Error ? `${e.name}${status ? ` ${status}` : ""}: ${e.message.slice(0, 200)}` : "unknown"}; abstaining`);
   }
 
   // One transaction: the result row, the turn status and the outbox row commit together (V1/O3).

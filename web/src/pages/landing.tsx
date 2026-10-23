@@ -31,6 +31,7 @@ export function Landing({ t }: { t: Strings }) {
         <h1>{t.h1}</h1>
         <p className="lede">{t.lede}</p>
         <a className="btn big" href="#/play" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>{t.take}</a>
+        <a className="btn big ghost" href="#/plan" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", marginInlineStart: 12 }}>{t.plan.cta}</a>
         {DEMO_CIRCLE && <a className="btn big ghost" href={`#/c/${DEMO_CIRCLE}`} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none", marginInlineStart: 12 }}>{t.play.demo}</a>}
       </div>
       <figure className={`sheet ${kindOf(phase) === "night" && !ended ? "night" : ""}`} style={{ margin: 0 }} aria-label={t.replayCaption}>

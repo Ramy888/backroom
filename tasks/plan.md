@@ -91,8 +91,8 @@ The detailed tasks, with acceptance criteria and verification steps, are in `tas
 - [ ] The smoke test passes
 
 ### Phase 3: Plan slice
-- [ ] 16. Plan backend (seeded options, AI members' limits, editLimit, versioned votes, candidate, approve, conflict, re-plan, bounds)
-- [ ] 17. Plan UI (limits form, rounds ledger, candidate sheet, approve, conflict and approved stamps)
+- [x] 16. (test project ✅: plan suite 5/5 incl. conflict both orders, stale vote, expiry; real-model run committed g2 after a real 409) Plan backend (seeded options, AI members' limits, editLimit, versioned votes, candidate, approve, conflict, re-plan, bounds)
+- [x] 17. (test site ✅ on a phone: change my dates → CONFLICT · 409 → re-plan → g2 APPROVED; EN + AR, no overflow; prod pending) Plan UI (limits form, rounds ledger, candidate sheet, approve, conflict and approved stamps)
 
 ### Checkpoint 3
 - [ ] The Plan conflict demo works in both orders on the live URL
