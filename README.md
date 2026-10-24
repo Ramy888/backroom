@@ -157,3 +157,7 @@ You need Node 22+, the Appwrite CLI signed in, two Appwrite projects (production
 - **Appwrite**: TablesDB, Functions, Sites and Realtime.
 - **Anthropic Claude** (Haiku 5.5) plays every seat.
 - **Fonts:** Lalezar, Readex Pro and JetBrains Mono (SIL Open Font License), served by Google Fonts.
+
+## License
+
+MIT: see [LICENSE](LICENSE).
